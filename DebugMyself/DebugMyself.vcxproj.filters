@@ -15,37 +15,22 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pch.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DebugYourself.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Utility.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DebugYourselfUtility.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DebugYourselfDatabase.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <ClCompile Include="DebugMyself.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Configuration.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CompilationDatabase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="DebugYourself.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="pch.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Utility.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DebugYourselfDatabase.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <ClInclude Include="Configuration.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CompilationDatabase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

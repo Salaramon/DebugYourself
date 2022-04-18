@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{133817d0-5c92-4830-a610-b92eaf36615b}</ProjectGuid>
+    <ProjectGuid>{1692e7ee-9692-4256-aa1b-b629a98a8e09}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.20348.0</WindowsTargetPlatformVersion>
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -32,10 +32,28 @@
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>C:\Users\Salaramon\source\repos\DebugYourself\DebugYourself;C:\Users\Salaramon\source\repos\DebugYourself\sqlite\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Salaramon\source\repos\DebugYourself\x64\Debug;C:\Users\Salaramon\source\repos\DebugYourself\sqlite\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>C:\Users\Salaramon\source\repos\DebugYourself\DebugYourself;C:\Users\Salaramon\source\repos\DebugYourself\sqlite\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Salaramon\source\repos\DebugYourself\x64\Release;C:\Users\Salaramon\source\repos\DebugYourself\sqlite\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="TestingClasses.h" />
+    <ClInclude Include="TestingFunctions.h" />
+    <ClInclude Include="TestingVariables.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ClassRegisterTests.cpp" />
+    <ClCompile Include="Database.cpp" />
+    <ClCompile Include="BinderTests.cpp" />
+    <ClCompile Include="DebugMessageTests.cpp" />
+    <ClCompile Include="FundamentalVariableRegisterTests.cpp" />
+    <ClCompile Include="GlobalFunctionRegisterTests.cpp" />
+    <ClCompile Include="ObjectRegisterTests.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -46,7 +64,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DebugYourself\DebugYourself.vcxproj">
-      <Project>{acfbafbf-c191-4ea2-8736-3317d053c288}</Project>
+      <Project>{1d041054-c8e2-4a3a-accb-431f442c1d81}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -81,6 +99,7 @@
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -111,12 +130,14 @@
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <AdditionalDependencies>sqlite3.lib;DebugYourself.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

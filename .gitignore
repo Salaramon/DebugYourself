@@ -3,17 +3,21 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-# BOOST
-boost_1_74_0/
-craigsapp-midifile-988d55b/
-Interfaces\ v1.0/
-ASSIMP/
-GLAD/
-GLM/
-GLFW/
-Eigen/
-Vaulteer/backpack/
-Vaulteer/Crate/
+cppast
+cppast-build
+gigabase
+gigabase_build
+json
+json-build
+llvm-project
+New folder
+packages
+pugixml
+pugixml-build
+sqlite
+sqlite_build
+
+compile_commands.json
 
 # User-specific files
 *.rsuser
