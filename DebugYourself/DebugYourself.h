@@ -1,7 +1,5 @@
 #pragma once
 
-#include "pch.h"
-#include "framework.h"
 
 #include <string>
 #include <optional>
@@ -62,12 +60,12 @@ public:
 		{};
 
 		template<size_t n>
-		auto getFunctionPointer() {
+		constexpr auto getFunctionPointer() {
 			return std::get<n>(associatedFunctions);
 		}
 
 		template<size_t n>
-		const char* getFunctionName() {
+		constexpr const char* getFunctionName() {
 			return std::get<n>(associatedFunctionNames);
 		}
 
@@ -81,7 +79,7 @@ public:
 		UniformTuple<sizeof...(functionPointers), const char*>::tuple associatedFunctionNames;
 		inline static std::string className = classToString<AssociatedClass>();
 
-		std::chrono::duration<long double> timeStamp = DebugYourself::launchTimeStamp - std::chrono::steady_clock::now();
+		long double timeStamp = std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count();
 	};
 
 
@@ -99,8 +97,8 @@ public:
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>())),
 			objectName(nullptr),
 
-			timeStamp(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()),
-			instanceID(instanceCount++)
+			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			instanceID(++instanceCount)
 		{};
 
 		template<class... Parameters>
@@ -111,8 +109,8 @@ public:
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>())),
 			objectName(nullptr),
 
-			timeStamp(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()),
-			instanceID(instanceCount++)
+			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			instanceID(++instanceCount)
 		{};
 
 		template<class... Parameters>
@@ -123,8 +121,8 @@ public:
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>())),
 			objectName(objectName),
 
-			timeStamp(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()),
-			instanceID(instanceCount++)
+			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			instanceID(++instanceCount)
 		{};
 
 		template<class... Parameters>
@@ -135,8 +133,8 @@ public:
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(names)),
 			objectName(nullptr),
 
-			timeStamp(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()),
-			instanceID(instanceCount++)
+			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			instanceID(++instanceCount)
 		{};
 
 		template<class... Parameters>
@@ -147,8 +145,8 @@ public:
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(names)),
 			objectName(objectName),
 
-			timeStamp(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()),
-			instanceID(instanceCount++)
+			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			instanceID(++instanceCount)
 		{};
 		
 		
@@ -160,8 +158,26 @@ public:
 			objectName(other.objectName),
 
 			timeStamp(other.timeStamp),
-			instanceID(other.instanceID)
+			instanceID(++instanceCount)
 		{};
+
+		ObjectVariableRegister(ObjectVariableRegister&& other) :
+			associatedObject(std::move(other.associatedObject)),
+			associatedVariables(std::move(other.associatedVariables)),
+			associatedVariableNames(std::move(other.associatedVariableNames)),
+			objectName(std::move(other.objectName)),
+
+			timeStamp(std::move(other.timeStamp)),
+			instanceID(std::move(other.instanceID))
+		{
+			other.associatedObject = nullptr;
+			other.associatedVariables = std::tuple<Types*...>();
+			other.associatedVariableNames = DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>());
+			other.objectName = nullptr;
+
+			other.timeStamp = std::chrono::duration_values<long double>::zero();
+			other.instanceID = 0;
+		}
 		
 
 		ObjectVariableRegister& operator=(const ObjectVariableRegister& other) {
@@ -171,12 +187,33 @@ public:
 			objectName = other.objectName;
 
 			timeStamp = other.timeStamp;
+			instanceID = ++instanceCount;
+
+			return *this;
+		}
+
+		ObjectVariableRegister& operator=(ObjectVariableRegister&& other) {
+			associatedObject = other.associatedObject;
+			associatedVariables = other.associatedVariables;
+			associatedVariableNames = other.associatedVariableNames;
+			objectName = other.objectName;
+
+			timeStamp = other.timeStamp;
+			instanceID = other.instanceID;
+
+			other.associatedObject = nullptr;
+			other.associatedVariables = std::tuple<Types*...>();
+			other.associatedVariableNames = DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>());
+			other.objectName = nullptr;
+
+			other.timeStamp = std::chrono::duration_values<long double>::zero();
+			other.instanceID = 0;
 
 			return *this;
 		}
 
 		template<size_t n>
-		auto getVariablePointer() {
+		const auto getVariablePointer() {
 			return std::get<n>(associatedVariables);
 		}
 
@@ -203,9 +240,9 @@ public:
 		UniformTuple<sizeof...(Types), const char*>::tuple associatedVariableNames;
 		const char* objectName; 
 
-		std::chrono::duration<long double> timeStamp;
+		long double timeStamp;
 		inline static size_t instanceCount = 0;
-		const size_t instanceID;
+		size_t instanceID;
 	};
 
 
@@ -240,11 +277,10 @@ public:
 			return std::get<n>(associatedFunctionNames);
 		}
 
-	private:
 		std::tuple<decltype(functionPointers)...> associatedFunctions;
 		UniformTuple<sizeof...(functionPointers), const char*>::tuple associatedFunctionNames;
 
-		std::chrono::duration<long double> timeStamp = DebugYourself::launchTimeStamp - std::chrono::steady_clock::now();
+		long double timeStamp = std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count();
 	};
 
 
@@ -260,8 +296,8 @@ public:
 			associatedVariables(std::tuple<Types*...>()),
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>())),
 
-			timeStamp(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()),
-			instanceID(instanceCount++)
+			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			instanceID(++instanceCount)
 		{};
 
 		template<class... Parameters>
@@ -270,8 +306,8 @@ public:
 			associatedVariables(variables),
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>())),
 
-			timeStamp(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()),
-			instanceID(instanceCount++)
+			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			instanceID(++instanceCount)
 		{};
 
 		template<class... Parameters>
@@ -280,8 +316,8 @@ public:
 			associatedVariables(variables),
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(names)),
 
-			timeStamp(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()),
-			instanceID(instanceCount++)
+			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			instanceID(++instanceCount)
 		{};
 
 
@@ -321,7 +357,7 @@ public:
 		std::tuple<Types*...> associatedVariables;
 		UniformTuple<sizeof...(Types), const char*>::tuple associatedVariableNames;
 
-		std::chrono::duration<long double> timeStamp;
+		long double timeStamp;
 		inline static size_t instanceCount = 0;
 		const size_t instanceID;
 	};
