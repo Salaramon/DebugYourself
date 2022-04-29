@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1692e7ee-9692-4256-aa1b-b629a98a8e09}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0.20348.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion>
     <ConfigurationType>Application</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
@@ -48,8 +48,11 @@
     <ClCompile Include="ClassFunctionRegisterBinder.cpp" />
     <ClCompile Include="DebugMessageTests.cpp" />
     <ClCompile Include="FundamentalVariableRegister.cpp" />
+    <ClCompile Include="FundamentalVariableRegisterBinder.cpp" />
     <ClCompile Include="GlobalFunctionRegister.cpp" />
+    <ClCompile Include="GlobalFunctionRegisterBinder.cpp" />
     <ClCompile Include="ObjectVariableRegister.cpp" />
+    <ClCompile Include="ObjectVariableRegisterBinder.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

@@ -559,7 +559,7 @@ public:
 				std::tuple_element_t<0, GetPointerTypeFromRegisterVector<RegisterVector>>>
 			>* = nullptr>
 				static const char* get(PointerType* pointer, RegisterVector& registerVector) {
-				size_t index = getRegisterIndexFromPointer<n>(pointer, registerVector);
+				size_t index = getRegisterIndexFromPointer<0>(pointer, registerVector);
 				return (index != static_cast<size_t>(-1)) ?
 					registerVector.at(index)->getVariableName<0>() :
 					nullptr;
@@ -724,11 +724,6 @@ public:
 		static const char* getFunctionName() {
 			constexpr size_t index = GetFunctionIndexFromBinderRegisters<function>;
 			return std::get<GetFunctionTypeFromBinderRegisters<function>>(binder).getFunctionName<index>();
-		}
-
-		template<auto function>
-		static const char* getClassName() {
-			return GetRegisterFromFunction<function>::getClassName();
 		}
 	};
 	
