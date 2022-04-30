@@ -848,7 +848,6 @@ public:
 		}
 
 	};
-
 	
 	
 	using DBType = DebugYourselfDatabaseTable<>::Types::SQLite;
@@ -865,6 +864,10 @@ public:
 
 		return databaseTable;
 	}
+
+	static void end() {
+		getDatabase().push();
+	}
 	
 	template<auto fPointer, class FPType = decltype(fPointer)>
 	struct PtrUnion {};
@@ -878,6 +881,13 @@ public:
 		};
 	};
 
+	template<auto fp>
+	static intmax_t extractFunctionPointerAsInteger() {
+		typename PtrUnion<fp>::Union caster;
+		caster.f = fp;
+		return static_cast<intmax_t>(caster.buf);
+	}
+
 	//Implement compile-time debug() tag check.
 	
 	template<class CFRB, class OVRB, class GFRB, class FVRB>
@@ -888,6 +898,38 @@ public:
 			debugTagMap.emplace(name, callback);
 		}
 
+		struct DBTags {
+			inline static const char* GLOBAL = "#GLOBAL";
+			inline static const char* NULLVAR = "#NULL";
+			inline static const char* UNKNOWN = "#UNKNOWN";
+		};
+
+		static void publish(
+			DBType::TEXT class_name,
+			DBType::TEXT object_name,
+			DBType::INTEGER object,
+			DBType::TEXT function_name,
+			DBType::INTEGER function,
+			DBType::TEXT variable_name,
+			DBType::INTEGER variable,
+			DBType::INTEGER debugLevel,
+			DBType::INTEGER tags,
+			DBType::TEXT message)
+		{
+			getDatabase().add(
+				class_name,
+				object_name == nullptr ? DBTags::UNKNOWN : object_name,
+				object,
+				function_name == nullptr ? DBTags::UNKNOWN : function_name,
+				function,
+				variable_name == nullptr ? DBTags::UNKNOWN : variable_name,
+				variable,
+				debugLevel,
+				0,
+				message);
+		}
+
+
 		template<auto functionPointer, class Variable>
 		static void debug(GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, DBType::INTEGER debugLevel, std::string message) {
 			/*
@@ -896,31 +938,21 @@ public:
 				it->second();
 			}
 			*/
-			const char* class_name = CFRB::template getClassName<functionPointer>();
-			const char* function_name = CFRB::template getFunctionName<functionPointer>();
-			const char* variable_name = OVRB::getVariableName(variable);
-			const char* object_name = OVRB::getObjectName(object);
 
-			
-			
-			typename PtrUnion<functionPointer>::Union caster;
-			caster.f = functionPointer;
-			auto a = functionPointer;
-			intmax_t val = static_cast<intmax_t>(caster.buf);
-			getDatabase().add(
-				class_name,
-				object_name,
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				OVRB::getObjectName(object),
 				reinterpret_cast<DBType::INTEGER>(object),
-				function_name,
-				static_cast<DBType::INTEGER>(caster.buf),
-				variable_name,
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				OVRB::getVariableName(variable),
 				reinterpret_cast<DBType::INTEGER>(variable),
-				debugLevel, 
+				debugLevel,
 				0,
-				message.c_str());
-			getDatabase().push();
+				message.c_str()
+			);
+			
 		}
-		
 
 		template<auto functionPointer, class Variable>
 		static void debug(Variable* variable, DBType::INTEGER debugLevel, std::string message) {
@@ -930,48 +962,175 @@ public:
 				it->second();
 			}
 			*/
-			const char* class_name = "#GLOBAL";
-			const char* function_name = GFRB::template getFunctionName<functionPointer>();
 			const char* variable_name = OVRB::getObjectName(variable);
-			variable_name = (variable_name != nullptr) ? variable_name : FVRB::getVariableName();
-			const char* object_name = "#NULL";
+			DBType::INTEGER object = static_cast<DBType::INTEGER>(OVRB::getObject(variable));
+			variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
 
-
-
-			typename PtrUnion<functionPointer>::Union caster;
-			caster.f = functionPointer;
-			auto a = functionPointer;
-			intmax_t val = static_cast<intmax_t>(caster.buf);
-			getDatabase().add(
-				class_name.c_str(),
-				object_name,
-				reinterpret_cast<DBType::INTEGER>(nullptr),
-				function_name,
-				static_cast<DBType::INTEGER>(caster.buf),
+			publish(
+				DBTags::GLOBAL,
+				DBTags::NULLVAR,
+				object,
+				GFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
 				variable_name,
-				reinterpret_cast<DBType::INTEGER>(variable),
+				variable,
 				debugLevel,
 				0,
-				message.c_str());
-			getDatabase().push();
+				message.c_str()
+			);
+		}
+
+		template<class Variable>
+		static void debug(Variable* variable, DBType::INTEGER debugLevel, std::string message) {
+			/*
+			auto it = debugTagMap.find(debugLevel);
+			if (it != debugTagMap.end()) {
+				it->second();
+			}
+			*/
+
+			publish(
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				OVRB::getVariableName(variable),
+				variable,
+				debugLevel,
+				0,
+				message.c_str()
+			);
+
+		}
+
+		template<auto functionPointer>
+		static void debug(GetClassFromFunctionPointer<functionPointer>* object, DBType::INTEGER debugLevel, std::string message) {
+			/*
+			auto it = debugTagMap.find(debugLevel);
+			if (it != debugTagMap.end()) {
+				it->second();
+			}
+			*/
+
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				OVRB::getObjectName(object),
+				object,
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				nullptr,
+				nullptr,
+				debugLevel,
+				0,
+				message.c_str()
+			);
+
+		}
+
+		template<auto functionPointer>
+		static void debug(DBType::INTEGER debugLevel, std::string message) {
+			/*
+			auto it = debugTagMap.find(debugLevel);
+			if (it != debugTagMap.end()) {
+				it->second();
+			}
+			*/
+
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				nullptr,
+				nullptr,
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				nullptr,
+				nullptr,
+				debugLevel,
+				0,
+				message.c_str()
+			);
+
+		}
+
+		static void debug(DBType::INTEGER debugLevel, std::string message) {
+			/*
+			auto it = debugTagMap.find(debugLevel);
+			if (it != debugTagMap.end()) {
+				it->second();
+			}
+			*/
+
+			publish(
+				nullptr ,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				debugLevel,
+				0,
+				message.c_str()
+			);
+
+		}
+
+		static void debug(std::string message) {
+			/*
+			auto it = debugTagMap.find(debugLevel);
+			if (it != debugTagMap.end()) {
+				it->second();
+			}
+			*/
+
+			publish(
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				0,
+				0,
+				message.c_str()
+			);
+
+		}
+		
+		template<class MessageAssembler, class... Args>
+		static void debug(Args... args) {
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+			publish(
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				0,
+				0,
+				message.c_str()
+			);
+		}
+
+
+	};
+
+	template<class Class, class Variable>
+	struct Handler {
+		virtual void operator()(Class*, Variable*, DBType::INTEGER, std::string) = 0;
+	};
+
+	template<class Class, class Variable>
+	struct DirectOutput : public Handler<Class, Variable> {
+		void operator()(Class* obj, Variable* var, DBType::INTEGER debugLevel, std::string message) {
+			printf(message.c_str());
 		}
 	};
 
-	
-	
-
-
-
-
-
-
-	template<auto... functionPointers>
-	using CFR = ClassFunctionRegister<functionPointers...>;
-
-	template<class ObjectType, class... Types>
-	using OVR = ObjectVariableRegister<ObjectType, Types...>;
-
-
-
+	static void addHandler(){}
 
 };

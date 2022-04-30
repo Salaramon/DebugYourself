@@ -46,7 +46,7 @@
   <ItemGroup>
     <ClCompile Include="ClassFunctionRegister.cpp" />
     <ClCompile Include="ClassFunctionRegisterBinder.cpp" />
-    <ClCompile Include="DebugMessageTests.cpp" />
+    <ClCompile Include="Dependencies.cpp" />
     <ClCompile Include="FundamentalVariableRegister.cpp" />
     <ClCompile Include="FundamentalVariableRegisterBinder.cpp" />
     <ClCompile Include="GlobalFunctionRegister.cpp" />
