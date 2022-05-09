@@ -10,6 +10,7 @@
 #include <string>
 #include <algorithm>
 #include <chrono>
+#include <ratio>
 #include <functional>
 #include <unordered_map>
 
@@ -79,7 +80,7 @@ public:
 		UniformTuple<sizeof...(functionPointers), const char*>::tuple associatedFunctionNames;
 		inline static std::string className = classToString<AssociatedClass>();
 
-		long double timeStamp = std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count();
+		long double timeStamp = std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count();
 	};
 
 
@@ -97,7 +98,7 @@ public:
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>())),
 			objectName(nullptr),
 
-			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			timeStamp( std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count()),
 			instanceID(++instanceCount)
 		{};
 
@@ -109,7 +110,7 @@ public:
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>())),
 			objectName(nullptr),
 
-			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			timeStamp( std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count()),
 			instanceID(++instanceCount)
 		{};
 
@@ -121,7 +122,7 @@ public:
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>())),
 			objectName(objectName),
 
-			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			timeStamp( std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count()),
 			instanceID(++instanceCount)
 		{};
 
@@ -133,7 +134,7 @@ public:
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(names)),
 			objectName(nullptr),
 
-			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			timeStamp( std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count()),
 			instanceID(++instanceCount)
 		{};
 
@@ -145,7 +146,7 @@ public:
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(names)),
 			objectName(objectName),
 
-			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			timeStamp( std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count()),
 			instanceID(++instanceCount)
 		{};
 		
@@ -230,6 +231,10 @@ public:
 			return objectName;
 		}
 
+		long double getInstanceTime() {
+			return timeStamp;
+		}
+
 		static constexpr size_t getNumberOfVariables() {
 			return sizeof...(Types);
 		}
@@ -280,7 +285,7 @@ public:
 		std::tuple<decltype(functionPointers)...> associatedFunctions;
 		UniformTuple<sizeof...(functionPointers), const char*>::tuple associatedFunctionNames;
 
-		long double timeStamp = std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count();
+		long double timeStamp =  std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count();
 	};
 
 
@@ -296,7 +301,7 @@ public:
 			associatedVariables(std::tuple<Types*...>()),
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>())),
 
-			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			timeStamp( std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count()),
 			instanceID(++instanceCount)
 		{};
 
@@ -306,7 +311,7 @@ public:
 			associatedVariables(variables),
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>())),
 
-			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			timeStamp( std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count()),
 			instanceID(++instanceCount)
 		{};
 
@@ -316,7 +321,7 @@ public:
 			associatedVariables(variables),
 			associatedVariableNames(DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(names)),
 
-			timeStamp(std::chrono::duration_cast<std::chrono::seconds>(DebugYourself::launchTimeStamp - std::chrono::steady_clock::now()).count()),
+			timeStamp( std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count()),
 			instanceID(++instanceCount)
 		{};
 
@@ -632,6 +637,20 @@ public:
 			return nullptr;
 
 		}
+
+		template<class ObjectType>
+		static long double getInstanceTime(ObjectType* objectAddress) {
+			constexpr auto& reg = std::get<GetParameterPackIndex<ObjectType, typename Registers::AssociatedClass...>>(binder);
+
+			for (size_t i = 0; i < reg.size(); i++) {
+				if (reg.at(i)->getObject() == objectAddress) {
+					return reg.at(i)->getInstanceTime();
+				}
+			}
+
+			return -1;
+
+		}
 	};
 	
 
@@ -850,23 +869,74 @@ public:
 	};
 	
 	
-	using DBType = DebugYourselfDatabaseTable<>::Types::SQLite;
-	using DatabaseTableType = DebugYourselfDatabaseTable
-		<DBType::TEXT, DBType::TEXT, DBType::INTEGER, DBType::TEXT, DBType::INTEGER,
-		DBType::TEXT, DBType::INTEGER, DBType::INTEGER, DBType::INTEGER, DBType::TEXT>;
+	using SQLTypes = SQL::Types;
+	using SQLCConst = SQL::ColumnConstraints;
+	using SQLTConst = SQL::TableConstraints;
+	using MainTableType = DebugYourselfDatabaseTable<
+		SQLCConst::PrimaryKey<SQLTypes::INTEGER>,
+		SQLTypes::TEXT, 
+		SQLTypes::TEXT, 
+		SQLTypes::INTEGER, 
+		SQLTypes::REAL,
+		SQLTypes::TEXT, 
+		SQLTypes::INTEGER,
+		SQLTypes::TEXT, 
+		SQLTypes::INTEGER, 
+		SQLTypes::INTEGER, 
+		SQLTypes::REAL, 
+		SQLTypes::TEXT>;
 	
-	static DatabaseTableType& getDatabase() {
+	using TagsTableType = DebugYourselfDatabaseTable<
+		SQLCConst::PrimaryKey<SQLTypes::INTEGER>,
+		SQLTypes::TEXT>;
+
+	using MainTable_TagsType = DebugYourselfDatabaseTable
+		<SQLTypes::INTEGER, SQLTypes::INTEGER, SQLTConst::ForeignKey, SQLTConst::ForeignKey>;
+
+	struct LoggingDatabase {
+	public:
+		LoggingDatabase(MainTableType& main, TagsTableType& tags, MainTable_TagsType& main_tags) :
+			mainTable(main),
+			tagsTable(tags),
+			main_tagsTable(main_tags)
+		{}
+		MainTableType& mainTable;
+		TagsTableType& tagsTable;
+		MainTable_TagsType& main_tagsTable;
+	};
+
+	static LoggingDatabase getLoggingDatabase() {
 		static DebugYourselfDatabase database;
 		
-		static DatabaseTableType databaseTable(&database, "TestTable",
-			"Class", "ObjectName", "Object_Address", "Function_Name", "Function_Address",
-			"Variable_Name", "Variable_Address", "Level", "Tags", "Message");
+		static MainTableType mainTable(&database, "MainTable",
+			"ID", 
+			"Class", 
+			"ObjectName", 
+			"Object_Address",
+			"Object_Time",
+			"Function_Name", 
+			"Function_Address",
+			"Variable_Name", 
+			"Variable_Address", 
+			"Rank", 
+			"Time", 
+			"Message");
 
-		return databaseTable;
+		static TagsTableType tagsTable(&database, "TagsTable",
+			"ID",
+			"Tag");
+
+		static MainTable_TagsType mainTable_Tags(&database, "MainTable_Tags",
+			"MainTable_ID", "TagsTable_ID", SQLTConst::ForeignKey("MainTable_ID", "MainTable", "ID"), SQLTConst::ForeignKey("TagsTable_ID", "TagsTable", "ID"));
+
+		return LoggingDatabase(mainTable, tagsTable, mainTable_Tags);
 	}
 
 	static void end() {
-		getDatabase().push();
+		getLoggingDatabase().mainTable.push();
+		getLoggingDatabase().tagsTable.push();
+		getLoggingDatabase().main_tagsTable.push();
+
 	}
 	
 	template<auto fPointer, class FPType = decltype(fPointer)>
@@ -888,6 +958,9 @@ public:
 		return static_cast<intmax_t>(caster.buf);
 	}
 
+	inline static SQLTypes::INTEGER mainTableIndex = 1;
+	inline static SQLTypes::INTEGER tagsTableIndex = 1;
+
 	//Implement compile-time debug() tag check.
 	
 	template<class CFRB, class OVRB, class GFRB, class FVRB>
@@ -905,171 +978,168 @@ public:
 		};
 
 		static void publish(
-			DBType::TEXT class_name,
-			DBType::TEXT object_name,
-			DBType::INTEGER object,
-			DBType::TEXT function_name,
-			DBType::INTEGER function,
-			DBType::TEXT variable_name,
-			DBType::INTEGER variable,
-			DBType::INTEGER debugLevel,
-			DBType::INTEGER tags,
-			DBType::TEXT message)
+			SQLTypes::TEXT class_name,
+			SQLTypes::TEXT object_name,
+			SQLTypes::INTEGER object,
+			SQLTypes::REAL objectTime,
+			SQLTypes::TEXT function_name,
+			SQLTypes::INTEGER function,
+			SQLTypes::TEXT variable_name,
+			SQLTypes::INTEGER variable,
+			SQLTypes::INTEGER rank,
+			SQLTypes::REAL time,
+			SQLTypes::TEXT message,
+			std::vector<SQLTypes::TEXT> tags)
 		{
-			getDatabase().add(
+			getLoggingDatabase().mainTable.add(
+				mainTableIndex,
 				class_name,
 				object_name == nullptr ? DBTags::UNKNOWN : object_name,
 				object,
+				objectTime,
 				function_name == nullptr ? DBTags::UNKNOWN : function_name,
 				function,
 				variable_name == nullptr ? DBTags::UNKNOWN : variable_name,
 				variable,
-				debugLevel,
-				0,
+				rank,
+				time,
 				message);
+
+			for (SQLTypes::TEXT tag : tags) {
+				getLoggingDatabase().tagsTable.add(
+					tagsTableIndex,
+					tag);
+
+				getLoggingDatabase().main_tagsTable.add(
+					mainTableIndex,
+					tagsTableIndex
+				);
+
+				tagsTableIndex++;
+			}
+
+			mainTableIndex++;
 		}
 
 
 		template<auto functionPointer, class Variable>
-		static void debug(GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, DBType::INTEGER debugLevel, std::string message) {
-			/*
-			auto it = debugTagMap.find(debugLevel);
-			if (it != debugTagMap.end()) {
-				it->second();
-			}
-			*/
+		static void debug(GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
 
 			publish(
 				CFRB::template getClassName<functionPointer>(),
 				OVRB::getObjectName(object),
-				reinterpret_cast<DBType::INTEGER>(object),
+				reinterpret_cast<SQLTypes::INTEGER>(object),
+				OVRB::getInstanceTime(object),
 				CFRB::template getFunctionName<functionPointer>(),
 				extractFunctionPointerAsInteger<functionPointer>(),
 				OVRB::getVariableName(variable),
-				reinterpret_cast<DBType::INTEGER>(variable),
-				debugLevel,
-				0,
-				message.c_str()
+				reinterpret_cast<SQLTypes::INTEGER>(variable),
+				rank,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
 			);
 			
 		}
 
 		template<auto functionPointer, class Variable>
-		static void debug(Variable* variable, DBType::INTEGER debugLevel, std::string message) {
-			/*
-			auto it = debugTagMap.find(debugLevel);
-			if (it != debugTagMap.end()) {
-				it->second();
-			}
-			*/
+		static void debug(Variable* variable, SQLTypes::INTEGER rank, std::string message) {
+			
 			const char* variable_name = OVRB::getObjectName(variable);
-			DBType::INTEGER object = static_cast<DBType::INTEGER>(OVRB::getObject(variable));
+			auto objectPointer = OVRB::getObject(variable);
+			SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
 			variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
 
 			publish(
 				DBTags::GLOBAL,
 				DBTags::NULLVAR,
 				object,
+				OVRB::getInstanceTime(objectPointer),
 				GFRB::template getFunctionName<functionPointer>(),
 				extractFunctionPointerAsInteger<functionPointer>(),
 				variable_name,
 				variable,
-				debugLevel,
-				0,
+				rank,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
 				message.c_str()
 			);
 		}
 
 		template<class Variable>
-		static void debug(Variable* variable, DBType::INTEGER debugLevel, std::string message) {
-			/*
-			auto it = debugTagMap.find(debugLevel);
-			if (it != debugTagMap.end()) {
-				it->second();
-			}
-			*/
+		static void debug(Variable* variable, SQLTypes::INTEGER rank, std::string message) {
+			
+			const char* variable_name = OVRB::getObjectName(variable);
+			auto objectPointer = OVRB::getObject(variable);
+			SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+			variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
 
 			publish(
 				nullptr,
 				nullptr,
+				object,
+				OVRB::getInstanceTime(objectPointer),
 				nullptr,
 				nullptr,
-				nullptr,
-				OVRB::getVariableName(variable),
+				variable_name,
 				variable,
-				debugLevel,
-				0,
+				rank,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
 				message.c_str()
 			);
 
 		}
 
 		template<auto functionPointer>
-		static void debug(GetClassFromFunctionPointer<functionPointer>* object, DBType::INTEGER debugLevel, std::string message) {
-			/*
-			auto it = debugTagMap.find(debugLevel);
-			if (it != debugTagMap.end()) {
-				it->second();
-			}
-			*/
+		static void debug(GetClassFromFunctionPointer<functionPointer>* object, SQLTypes::INTEGER rank, std::string message) {
 
 			publish(
 				CFRB::template getClassName<functionPointer>(),
 				OVRB::getObjectName(object),
 				object,
+				OVRB::getInstanceTime(object),
 				CFRB::template getFunctionName<functionPointer>(),
 				extractFunctionPointerAsInteger<functionPointer>(),
 				nullptr,
 				nullptr,
-				debugLevel,
-				0,
+				rank,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
 				message.c_str()
 			);
 
 		}
 
 		template<auto functionPointer>
-		static void debug(DBType::INTEGER debugLevel, std::string message) {
-			/*
-			auto it = debugTagMap.find(debugLevel);
-			if (it != debugTagMap.end()) {
-				it->second();
-			}
-			*/
+		static void debug(SQLTypes::INTEGER rank, std::string message) {
 
 			publish(
 				CFRB::template getClassName<functionPointer>(),
 				nullptr,
 				nullptr,
+				0,
 				CFRB::template getFunctionName<functionPointer>(),
 				extractFunctionPointerAsInteger<functionPointer>(),
 				nullptr,
 				nullptr,
-				debugLevel,
-				0,
+				rank,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
 				message.c_str()
 			);
 
 		}
 
-		static void debug(DBType::INTEGER debugLevel, std::string message) {
-			/*
-			auto it = debugTagMap.find(debugLevel);
-			if (it != debugTagMap.end()) {
-				it->second();
-			}
-			*/
+		static void debug(SQLTypes::INTEGER rank, std::string message) {
 
 			publish(
-				nullptr ,
 				nullptr,
 				nullptr,
 				nullptr,
-				nullptr,
-				nullptr,
-				nullptr,
-				debugLevel,
 				0,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				rank,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
 				message.c_str()
 			);
 
@@ -1087,12 +1157,13 @@ public:
 				nullptr,
 				nullptr,
 				nullptr,
+				0,
 				nullptr,
 				nullptr,
 				nullptr,
 				nullptr,
 				0,
-				0,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
 				message.c_str()
 			);
 
@@ -1106,12 +1177,13 @@ public:
 				nullptr,
 				nullptr,
 				nullptr,
+				0,
 				nullptr,
 				nullptr,
 				nullptr,
 				nullptr,
 				0,
-				0,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
 				message.c_str()
 			);
 		}
@@ -1121,12 +1193,12 @@ public:
 
 	template<class Class, class Variable>
 	struct Handler {
-		virtual void operator()(Class*, Variable*, DBType::INTEGER, std::string) = 0;
+		virtual void operator()(Class*, Variable*, SQLTypes::INTEGER, std::string) = 0;
 	};
 
 	template<class Class, class Variable>
 	struct DirectOutput : public Handler<Class, Variable> {
-		void operator()(Class* obj, Variable* var, DBType::INTEGER debugLevel, std::string message) {
+		void operator()(Class* obj, Variable* var, SQLTypes::INTEGER debugLevel, std::string message) {
 			printf(message.c_str());
 		}
 	};
