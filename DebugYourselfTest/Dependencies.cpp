@@ -139,7 +139,9 @@ TEST(Dependencies, CreateDatabase) {
 		ns_TestClasses::_TC3.OVR
 	);
 
-	DY::debug<&ns_TestClasses::TestClass2::charFunction>(&ns_TestClasses::_TC2, &ns_TestClasses::_TC2.boolVariable, 5, {"testTag"}, "test message");
+	DY::debug<&ns_TestClasses::TestClass2::charFunction>(&ns_TestClasses::_TC2, &ns_TestClasses::_TC2.boolVariable, 5, { "testTag", "otherTag", }, "test message");
+	DY::debug<&ns_TestClasses::TestClass2::charFunction>(&ns_TestClasses::_TC2, &ns_TestClasses::_TC2.boolVariable, 5, { "testTag2", "otherTag", }, "sdfh");
+	DY::debug<&ns_TestClasses::TestClass2::charFunction>(&ns_TestClasses::_TC2, &ns_TestClasses::_TC2.boolVariable, 5, { "testTag", "otherTag2", }, "asdgfhf");
 
 	DebugYourself::end();
 }

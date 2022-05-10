@@ -13,6 +13,7 @@
 #include <ratio>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "Utility.h"
 
@@ -962,8 +963,114 @@ public:
 	inline static SQLTypes::INTEGER tagsTableIndex = 1;
 
 	//Implement compile-time debug() tag check.
-	
-	template<class CFRB, class OVRB, class GFRB, class FVRB>
+
+	inline static std::unordered_map<std::string, SQLTypes::INTEGER> existingTags;
+
+	struct LoggingAction {
+		virtual void operator()(
+			SQLTypes::TEXT class_name,
+			SQLTypes::TEXT object_name,
+			SQLTypes::INTEGER object,
+			SQLTypes::REAL objectTime,
+			SQLTypes::TEXT function_name,
+			SQLTypes::INTEGER function,
+			SQLTypes::TEXT variable_name,
+			SQLTypes::INTEGER variable,
+			SQLTypes::INTEGER rank,
+			SQLTypes::REAL time,
+			SQLTypes::TEXT message,
+			std::vector<SQLTypes::TEXT> tags) = 0;
+	};
+
+	struct LoggingCondition {
+		virtual bool operator()(
+			SQLTypes::TEXT class_name,
+			SQLTypes::TEXT object_name,
+			SQLTypes::INTEGER object,
+			SQLTypes::REAL objectTime,
+			SQLTypes::TEXT function_name,
+			SQLTypes::INTEGER function,
+			SQLTypes::TEXT variable_name,
+			SQLTypes::INTEGER variable,
+			SQLTypes::INTEGER rank,
+			SQLTypes::REAL time,
+			SQLTypes::TEXT message,
+			std::vector<SQLTypes::TEXT> tags) = 0;
+	};
+
+	struct AlwaysTrue : public LoggingCondition {
+		bool operator()(
+			SQLTypes::TEXT class_name,
+			SQLTypes::TEXT object_name,
+			SQLTypes::INTEGER object,
+			SQLTypes::REAL objectTime,
+			SQLTypes::TEXT function_name,
+			SQLTypes::INTEGER function,
+			SQLTypes::TEXT variable_name,
+			SQLTypes::INTEGER variable,
+			SQLTypes::INTEGER rank,
+			SQLTypes::REAL time,
+			SQLTypes::TEXT message,
+			std::vector<SQLTypes::TEXT> tags) override {
+
+			return true;
+		};
+	};
+
+	template<class Condition = AlwaysTrue>
+	struct DirectLogger : public LoggingAction {
+		void operator()(
+			SQLTypes::TEXT class_name,
+			SQLTypes::TEXT object_name,
+			SQLTypes::INTEGER object,
+			SQLTypes::REAL objectTime,
+			SQLTypes::TEXT function_name,
+			SQLTypes::INTEGER function,
+			SQLTypes::TEXT variable_name,
+			SQLTypes::INTEGER variable,
+			SQLTypes::INTEGER rank,
+			SQLTypes::REAL time,
+			SQLTypes::TEXT message,
+			std::vector<SQLTypes::TEXT> tags) override {
+
+			if (Condition()(
+				class_name,
+				object_name,
+				object,
+				objectTime,
+				function_name,
+				function,
+				variable_name,
+				variable,
+				rank,
+				time,
+				message,
+				tags
+				)) {
+				std::string taglist = "{";
+				for (SQLTypes::TEXT tag : tags) {
+					taglist += std::string(tag) + ", ";
+				}
+				taglist.erase(taglist.size() - 2, 2);
+				taglist += "}";
+
+				std::cout <<
+					"Class_Name" << "\t" <<
+					"Object_Name" << "\t" <<
+					"Function_Name" << "\t" <<
+					"Variable_Name" << "\t" <<
+					"Time" << "\n" <<
+					class_name << "\t" <<
+					object_name << "\t" <<
+					function_name << "\t" <<
+					variable_name << "\t" <<
+					time << "\n" <<
+					message << "\n" << "\n\n";
+			}
+		}
+	};
+
+	template<class CFRB, class OVRB, class GFRB, class FVRB, class PreAction = DirectLogger<>>
 	struct Dependencies {
 		std::unordered_map<std::string, std::function<void(void)>> debugTagMap;
 
@@ -991,6 +1098,22 @@ public:
 			SQLTypes::TEXT message,
 			std::vector<SQLTypes::TEXT> tags)
 		{
+			PreAction()(
+				class_name,
+				object_name == nullptr ? DBTags::UNKNOWN : object_name,
+				object,
+				objectTime,
+				function_name == nullptr ? DBTags::UNKNOWN : function_name,
+				function,
+				variable_name == nullptr ? DBTags::UNKNOWN : variable_name,
+				variable,
+				rank,
+				time,
+				message,
+				tags
+			);
+
+
 			getLoggingDatabase().mainTable.add(
 				mainTableIndex,
 				class_name,
@@ -1006,24 +1129,33 @@ public:
 				message);
 
 			for (SQLTypes::TEXT tag : tags) {
-				getLoggingDatabase().tagsTable.add(
-					tagsTableIndex,
-					tag);
+				auto it = existingTags.find(tag);
+				if (it == existingTags.end()) {
+					getLoggingDatabase().tagsTable.add(
+						tagsTableIndex,
+						tag);
+					existingTags.emplace(tag, tagsTableIndex);
 
-				getLoggingDatabase().main_tagsTable.add(
-					mainTableIndex,
-					tagsTableIndex
-				);
+					getLoggingDatabase().main_tagsTable.add(
+						mainTableIndex,
+						tagsTableIndex
+					);
 
-				tagsTableIndex++;
+					tagsTableIndex++;
+				}
+				else {
+					getLoggingDatabase().main_tagsTable.add(
+						mainTableIndex,
+						it->second
+					);
+				}
 			}
 
 			mainTableIndex++;
 		}
 
 
-		template<auto functionPointer, class Variable>
-		static void debug(GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+		template<auto functionPointer, class Variable> static void debug(GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
 
 			publish(
 				CFRB::template getClassName<functionPointer>(),
@@ -1041,9 +1173,47 @@ public:
 			);
 			
 		}
+		template<auto functionPointer, class Variable> static void debug(GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, SQLTypes::INTEGER rank, std::string message) {
 
-		template<auto functionPointer, class Variable>
-		static void debug(Variable* variable, SQLTypes::INTEGER rank, std::string message) {
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				OVRB::getObjectName(object),
+				reinterpret_cast<SQLTypes::INTEGER>(object),
+				OVRB::getInstanceTime(object),
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				OVRB::getVariableName(variable),
+				reinterpret_cast<SQLTypes::INTEGER>(variable),
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
+
+		}
+		template<auto functionPointer, class Variable> static void debug(Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+
+			const char* variable_name = OVRB::getObjectName(variable);
+			auto objectPointer = OVRB::getObject(variable);
+			SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+			variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+			publish(
+				DBTags::GLOBAL,
+				DBTags::NULLVAR,
+				object,
+				OVRB::getInstanceTime(objectPointer),
+				GFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				variable_name,
+				variable,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
+			);
+		}
+		template<auto functionPointer, class Variable> static void debug(Variable* variable, SQLTypes::INTEGER rank, std::string message) {
 			
 			const char* variable_name = OVRB::getObjectName(variable);
 			auto objectPointer = OVRB::getObject(variable);
@@ -1061,13 +1231,80 @@ public:
 				variable,
 				rank,
 				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
-				message.c_str()
+				message.c_str(),
+				{}
 			);
 		}
+		template<auto functionPointer> static void debug(GetClassFromFunctionPointer<functionPointer>* object, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
 
-		template<class Variable>
-		static void debug(Variable* variable, SQLTypes::INTEGER rank, std::string message) {
-			
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				OVRB::getObjectName(object),
+				object,
+				OVRB::getInstanceTime(object),
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				nullptr,
+				nullptr,
+				rank,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
+			);
+		}
+		template<auto functionPointer> static void debug(GetClassFromFunctionPointer<functionPointer>* object, SQLTypes::INTEGER rank, std::string message) {
+
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				OVRB::getObjectName(object),
+				object,
+				OVRB::getInstanceTime(object),
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				nullptr,
+				nullptr,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
+		}
+		template<auto functionPointer> static void debug(SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				nullptr,
+				nullptr,
+				0,
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				nullptr,
+				nullptr,
+				rank,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
+			);
+		}
+		template<auto functionPointer> static void debug(SQLTypes::INTEGER rank, std::string message) {
+
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				nullptr,
+				nullptr,
+				0,
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				nullptr,
+				nullptr,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
+		}
+		template<class Variable> static void debug(Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+
 			const char* variable_name = OVRB::getObjectName(variable);
 			auto objectPointer = OVRB::getObject(variable);
 			SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
@@ -1083,14 +1320,195 @@ public:
 				variable_name,
 				variable,
 				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
+			);
+		}
+		template<class Variable> static void debug(Variable* variable, SQLTypes::INTEGER rank, std::string message) {
+
+			const char* variable_name = OVRB::getObjectName(variable);
+			auto objectPointer = OVRB::getObject(variable);
+			SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+			variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+			publish(
+				nullptr,
+				nullptr,
+				object,
+				OVRB::getInstanceTime(objectPointer),
+				nullptr,
+				nullptr,
+				variable_name,
+				variable,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
+		}
+
+		static void debug(SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+
+			publish(
+				nullptr,
+				nullptr,
+				nullptr,
+				0,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				rank,
 				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
-				message.c_str()
+				message.c_str(),
+				tags
+			);
+		}
+		static void debug(SQLTypes::INTEGER rank, std::string message) {
+
+			publish(
+				nullptr,
+				nullptr,
+				nullptr,
+				0,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
+		}
+		static void debug(std::vector<SQLTypes::TEXT> tags, std::string message) {
+
+			publish(
+				nullptr,
+				nullptr,
+				nullptr,
+				0,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				0,
+				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
+			);
+		}
+		static void debug(std::string message) {
+
+			publish(
+				nullptr,
+				nullptr,
+				nullptr,
+				0,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				0,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
+		}
+		
+
+		template<auto functionPointer, class Variable, class MessageAssembler, class... Args> static void debug(GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				OVRB::getObjectName(object),
+				reinterpret_cast<SQLTypes::INTEGER>(object),
+				OVRB::getInstanceTime(object),
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				OVRB::getVariableName(variable),
+				reinterpret_cast<SQLTypes::INTEGER>(variable),
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
 			);
 
 		}
+		template<auto functionPointer, class Variable, class MessageAssembler, class... Args> static void debug(GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, SQLTypes::INTEGER rank, Args... args) {
 
-		template<auto functionPointer>
-		static void debug(GetClassFromFunctionPointer<functionPointer>* object, SQLTypes::INTEGER rank, std::string message) {
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				OVRB::getObjectName(object),
+				reinterpret_cast<SQLTypes::INTEGER>(object),
+				OVRB::getInstanceTime(object),
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				OVRB::getVariableName(variable),
+				reinterpret_cast<SQLTypes::INTEGER>(variable),
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
+
+		}
+		template<auto functionPointer, class Variable, class MessageAssembler, class... Args> static void debug(Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+			const char* variable_name = OVRB::getObjectName(variable);
+			auto objectPointer = OVRB::getObject(variable);
+			SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+			variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+			publish(
+				DBTags::GLOBAL,
+				DBTags::NULLVAR,
+				object,
+				OVRB::getInstanceTime(objectPointer),
+				GFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				variable_name,
+				variable,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
+			);
+		}
+		template<auto functionPointer, class Variable, class MessageAssembler, class... Args> static void debug(Variable* variable, SQLTypes::INTEGER rank, Args... args) {
+
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+			const char* variable_name = OVRB::getObjectName(variable);
+			auto objectPointer = OVRB::getObject(variable);
+			SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+			variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+			publish(
+				DBTags::GLOBAL,
+				DBTags::NULLVAR,
+				object,
+				OVRB::getInstanceTime(objectPointer),
+				GFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				variable_name,
+				variable,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
+		}
+		template<auto functionPointer, class MessageAssembler, class... Args> static void debug(GetClassFromFunctionPointer<functionPointer>* object, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
 
 			publish(
 				CFRB::template getClassName<functionPointer>(),
@@ -1102,14 +1520,33 @@ public:
 				nullptr,
 				nullptr,
 				rank,
-				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
-				message.c_str()
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
 			);
-
 		}
+		template<auto functionPointer, class MessageAssembler, class... Args> static void debug(GetClassFromFunctionPointer<functionPointer>* object, SQLTypes::INTEGER rank, Args... args) {
 
-		template<auto functionPointer>
-		static void debug(SQLTypes::INTEGER rank, std::string message) {
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				OVRB::getObjectName(object),
+				object,
+				OVRB::getInstanceTime(object),
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				nullptr,
+				nullptr,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
+		}
+		template<auto functionPointer, class MessageAssembler, class... Args> static void debug(SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
 
 			publish(
 				CFRB::template getClassName<functionPointer>(),
@@ -1121,13 +1558,82 @@ public:
 				nullptr,
 				nullptr,
 				rank,
-				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
-				message.c_str()
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
 			);
+		}
+		template<auto functionPointer, class MessageAssembler, class... Args> static void debug(SQLTypes::INTEGER rank, Args... args) {
 
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+			publish(
+				CFRB::template getClassName<functionPointer>(),
+				nullptr,
+				nullptr,
+				0,
+				CFRB::template getFunctionName<functionPointer>(),
+				extractFunctionPointerAsInteger<functionPointer>(),
+				nullptr,
+				nullptr,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
+		}
+		template<class Variable, class MessageAssembler, class... Args> static void debug(Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+			const char* variable_name = OVRB::getObjectName(variable);
+			auto objectPointer = OVRB::getObject(variable);
+			SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+			variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+			publish(
+				nullptr,
+				nullptr,
+				object,
+				OVRB::getInstanceTime(objectPointer),
+				nullptr,
+				nullptr,
+				variable_name,
+				variable,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
+			);
+		}
+		template<class Variable, class MessageAssembler, class... Args> static void debug(Variable* variable, SQLTypes::INTEGER rank, Args... args) {
+
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+			const char* variable_name = OVRB::getObjectName(variable);
+			auto objectPointer = OVRB::getObject(variable);
+			SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+			variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+			publish(
+				nullptr,
+				nullptr,
+				object,
+				OVRB::getInstanceTime(objectPointer),
+				nullptr,
+				nullptr,
+				variable_name,
+				variable,
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
+			);
 		}
 
-		static void debug(SQLTypes::INTEGER rank, std::string message) {
+		template<class MessageAssembler, class... Args> static void debug(SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
 
 			publish(
 				nullptr,
@@ -1139,19 +1645,14 @@ public:
 				nullptr,
 				nullptr,
 				rank,
-				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
-				message.c_str()
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
 			);
-
 		}
+		template<class MessageAssembler, class... Args> static void debug(SQLTypes::INTEGER rank, Args... args) {
 
-		static void debug(std::string message) {
-			/*
-			auto it = debugTagMap.find(debugLevel);
-			if (it != debugTagMap.end()) {
-				it->second();
-			}
-			*/
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
 
 			publish(
 				nullptr,
@@ -1162,15 +1663,14 @@ public:
 				nullptr,
 				nullptr,
 				nullptr,
-				0,
-				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
-				message.c_str()
+				rank,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
 			);
-
 		}
-		
-		template<class MessageAssembler, class... Args>
-		static void debug(Args... args) {
+		template<class MessageAssembler, class... Args> static void debug(std::vector<SQLTypes::TEXT> tags, Args... args) {
+
 			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
 
 			publish(
@@ -1183,26 +1683,611 @@ public:
 				nullptr,
 				nullptr,
 				0,
-				 std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
-				message.c_str()
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				tags
+			);
+		}
+		template<class MessageAssembler, class... Args> static void debug(Args... args) {
+
+			std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+			publish(
+				nullptr,
+				nullptr,
+				nullptr,
+				0,
+				nullptr,
+				nullptr,
+				nullptr,
+				nullptr,
+				0,
+				std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+				message.c_str(),
+				{}
 			);
 		}
 
 
-	};
 
-	template<class Class, class Variable>
-	struct Handler {
-		virtual void operator()(Class*, Variable*, SQLTypes::INTEGER, std::string) = 0;
-	};
 
-	template<class Class, class Variable>
-	struct DirectOutput : public Handler<Class, Variable> {
-		void operator()(Class* obj, Variable* var, SQLTypes::INTEGER debugLevel, std::string message) {
-			printf(message.c_str());
+		template<auto functionPointer, class Variable, class Func> static void debug(std::function<Func> condition, GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+			if (condition()) {
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					OVRB::getObjectName(object),
+					reinterpret_cast<SQLTypes::INTEGER>(object),
+					OVRB::getInstanceTime(object),
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					OVRB::getVariableName(variable),
+					reinterpret_cast<SQLTypes::INTEGER>(variable),
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
 		}
-	};
+		template<auto functionPointer, class Variable, class Func> static void debug(std::function<Func> condition, GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, SQLTypes::INTEGER rank, std::string message) {
+			if (condition()) {
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					OVRB::getObjectName(object),
+					reinterpret_cast<SQLTypes::INTEGER>(object),
+					OVRB::getInstanceTime(object),
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					OVRB::getVariableName(variable),
+					reinterpret_cast<SQLTypes::INTEGER>(variable),
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+		template<auto functionPointer, class Variable, class Func> static void debug(std::function<Func> condition, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+			if (condition()) {
+				const char* variable_name = OVRB::getObjectName(variable);
+				auto objectPointer = OVRB::getObject(variable);
+				SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+				variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
 
-	static void addHandler(){}
+				publish(
+					DBTags::GLOBAL,
+					DBTags::NULLVAR,
+					object,
+					OVRB::getInstanceTime(objectPointer),
+					GFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					variable_name,
+					variable,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<auto functionPointer, class Variable, class Func> static void debug(std::function<Func> condition, Variable* variable, SQLTypes::INTEGER rank, std::string message) {
+			if (condition()) {
+				const char* variable_name = OVRB::getObjectName(variable);
+				auto objectPointer = OVRB::getObject(variable);
+				SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+				variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+				publish(
+					DBTags::GLOBAL,
+					DBTags::NULLVAR,
+					object,
+					OVRB::getInstanceTime(objectPointer),
+					GFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					variable_name,
+					variable,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+		template<auto functionPointer, class Func> static void debug(std::function<Func> condition, GetClassFromFunctionPointer<functionPointer>* object, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+			if (condition()) {
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					OVRB::getObjectName(object),
+					object,
+					OVRB::getInstanceTime(object),
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<auto functionPointer, class Func> static void debug(std::function<Func> condition, GetClassFromFunctionPointer<functionPointer>* object, SQLTypes::INTEGER rank, std::string message) {
+			if (condition()) {
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					OVRB::getObjectName(object),
+					object,
+					OVRB::getInstanceTime(object),
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+		template<auto functionPointer, class Func> static void debug(std::function<Func> condition, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+			if (condition()) {
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					nullptr,
+					nullptr,
+					0,
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<auto functionPointer, class Func> static void debug(std::function<Func> condition, SQLTypes::INTEGER rank, std::string message) {
+			if (condition()) {
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					nullptr,
+					nullptr,
+					0,
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+		template<class Variable, class Func> static void debug(std::function<Func> condition, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+			if (condition()) {
+				const char* variable_name = OVRB::getObjectName(variable);
+				auto objectPointer = OVRB::getObject(variable);
+				SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+				variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+				publish(
+					nullptr,
+					nullptr,
+					object,
+					OVRB::getInstanceTime(objectPointer),
+					nullptr,
+					nullptr,
+					variable_name,
+					variable,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<class Variable, class Func> static void debug(std::function<Func> condition, Variable* variable, SQLTypes::INTEGER rank, std::string message) {
+			if (condition()) {
+				const char* variable_name = OVRB::getObjectName(variable);
+				auto objectPointer = OVRB::getObject(variable);
+				SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+				variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+				publish(
+					nullptr,
+					nullptr,
+					object,
+					OVRB::getInstanceTime(objectPointer),
+					nullptr,
+					nullptr,
+					variable_name,
+					variable,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+
+		template<class Func> static void debug(std::function<Func> condition, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+			if (condition()) {
+				publish(
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<class Func> static void debug(std::function<Func> condition, SQLTypes::INTEGER rank, std::string message) {
+			if (condition()) {
+				publish(
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+		template<class Func> static void debug(std::function<Func> condition, std::vector<SQLTypes::TEXT> tags, std::string message) {
+			if (condition()) {
+				publish(
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<class Func> static void debug(std::function<Func> condition, std::string message) {
+			if (condition()) {
+				publish(
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+
+		template<auto functionPointer, class Variable, class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					OVRB::getObjectName(object),
+					reinterpret_cast<SQLTypes::INTEGER>(object),
+					OVRB::getInstanceTime(object),
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					OVRB::getVariableName(variable),
+					reinterpret_cast<SQLTypes::INTEGER>(variable),
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<auto functionPointer, class Variable, class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, GetClassFromFunctionPointer<functionPointer>* object, Variable* variable, SQLTypes::INTEGER rank, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					OVRB::getObjectName(object),
+					reinterpret_cast<SQLTypes::INTEGER>(object),
+					OVRB::getInstanceTime(object),
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					OVRB::getVariableName(variable),
+					reinterpret_cast<SQLTypes::INTEGER>(variable),
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+		template<auto functionPointer, class Variable, class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				const char* variable_name = OVRB::getObjectName(variable);
+				auto objectPointer = OVRB::getObject(variable);
+				SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+				variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+				publish(
+					DBTags::GLOBAL,
+					DBTags::NULLVAR,
+					object,
+					OVRB::getInstanceTime(objectPointer),
+					GFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					variable_name,
+					variable,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<auto functionPointer, class Variable, class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, Variable* variable, SQLTypes::INTEGER rank, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				const char* variable_name = OVRB::getObjectName(variable);
+				auto objectPointer = OVRB::getObject(variable);
+				SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+				variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+				publish(
+					DBTags::GLOBAL,
+					DBTags::NULLVAR,
+					object,
+					OVRB::getInstanceTime(objectPointer),
+					GFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					variable_name,
+					variable,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+		template<auto functionPointer, class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, GetClassFromFunctionPointer<functionPointer>* object, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					OVRB::getObjectName(object),
+					object,
+					OVRB::getInstanceTime(object),
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<auto functionPointer, class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, GetClassFromFunctionPointer<functionPointer>* object, SQLTypes::INTEGER rank, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					OVRB::getObjectName(object),
+					object,
+					OVRB::getInstanceTime(object),
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+		template<auto functionPointer, class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					nullptr,
+					nullptr,
+					0,
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<auto functionPointer, class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, SQLTypes::INTEGER rank, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				publish(
+					CFRB::template getClassName<functionPointer>(),
+					nullptr,
+					nullptr,
+					0,
+					CFRB::template getFunctionName<functionPointer>(),
+					extractFunctionPointerAsInteger<functionPointer>(),
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+		template<class Variable, class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				const char* variable_name = OVRB::getObjectName(variable);
+				auto objectPointer = OVRB::getObject(variable);
+				SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+				variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+				publish(
+					nullptr,
+					nullptr,
+					object,
+					OVRB::getInstanceTime(objectPointer),
+					nullptr,
+					nullptr,
+					variable_name,
+					variable,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<class Variable, class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, Variable* variable, SQLTypes::INTEGER rank, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				const char* variable_name = OVRB::getObjectName(variable);
+				auto objectPointer = OVRB::getObject(variable);
+				SQLTypes::INTEGER object = static_cast<SQLTypes::INTEGER>(objectPointer);
+				variable_name = variable_name != nullptr ? variable_name : FVRB::getVariableName();
+
+				publish(
+					nullptr,
+					nullptr,
+					object,
+					OVRB::getInstanceTime(objectPointer),
+					nullptr,
+					nullptr,
+					variable_name,
+					variable,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+
+		template<class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				publish(
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, SQLTypes::INTEGER rank, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				publish(
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr,
+					rank,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+		template<class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, std::vector<SQLTypes::TEXT> tags, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				publish(
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					tags
+				);
+			}
+		}
+		template<class MessageAssembler, class... Args, class Func> static void debug(std::function<Func> condition, Args... args) {
+			if (condition()) {
+				std::string message = std::apply(MessageAssembler(), std::tuple<Args...>(args...));
+
+				publish(
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					nullptr,
+					nullptr,
+					nullptr,
+					nullptr,
+					0,
+					std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugYourself::launchTimeStamp)).count(),
+					message.c_str(),
+					{}
+				);
+			}
+		}
+
+
+	};
 
 };
