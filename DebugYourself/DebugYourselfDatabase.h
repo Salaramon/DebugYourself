@@ -19,13 +19,12 @@ class DebugYourselfDatabase
 public:
 
 
-	DebugYourselfDatabase() :
-		databaseInstance(sqlite3_open("DebugYourselfDatabase.db", &database))
+	DebugYourselfDatabase(std::string fileName) :
+		databaseInstance(sqlite3_open(fileName.c_str(), &database))
 	{
 		if (databaseInstance != 0) {
 			std::cerr << "Could not create database!" << std::endl;
 		}
-
 	}
 
 	~DebugYourselfDatabase() {

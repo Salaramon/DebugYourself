@@ -14,6 +14,10 @@
 #include <functional>
 #include <unordered_map>
 #include <unordered_set>
+#include <iostream>
+#include <iomanip>
+#include <ctime>
+#include <sstream>
 
 #include "Utility.h"
 
@@ -907,7 +911,15 @@ public:
 	};
 
 	static LoggingDatabase getLoggingDatabase() {
-		static DebugYourselfDatabase database;
+		
+		auto t = std::time(nullptr);
+		tm tm;
+		gmtime_s(&tm, &t);
+
+		std::ostringstream oss;
+		oss << std::put_time(&tm, "%Y%m%d%H%M%S");
+		//"%d-%m-%Y %H-%M-%S"
+		static DebugYourselfDatabase database("DebugYourselfDatabase-" + oss.str() + ".db");
 		
 		static MainTableType mainTable(&database, "MainTable",
 			"ID", 
