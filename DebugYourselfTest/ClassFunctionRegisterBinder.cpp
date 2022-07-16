@@ -2,6 +2,8 @@
 
 #include <DebugYourself.h>
 
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns__Registers_ {
 	class TestClass1 {
 	public:

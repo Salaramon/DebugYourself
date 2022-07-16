@@ -33,6 +33,9 @@
     <ClInclude Include="DebugYourselfDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TemplateUtility.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DebugYourself.cpp">

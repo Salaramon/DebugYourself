@@ -2,6 +2,9 @@
 
 #include <DebugYourself.h>
 
+
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns_Parameters_ {
 	class TestClass {
 	private:

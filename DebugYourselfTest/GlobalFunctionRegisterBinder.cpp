@@ -2,6 +2,8 @@
 
 #include <DebugYourself.h>
 
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns_Registers_ {
 	void voidFunction1(bool, char) {}
 	bool boolFunction1(void*, char) { return true; }

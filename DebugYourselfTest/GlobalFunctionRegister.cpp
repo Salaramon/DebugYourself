@@ -3,6 +3,8 @@
 
 #include <DebugYourself.h>
 
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns_Parameters_ {
 	void voidFunction(bool, char) {}
 	bool boolFunction(void*, char) { return true; }

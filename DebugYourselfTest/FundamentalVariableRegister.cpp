@@ -2,6 +2,8 @@
 
 #include <DebugYourself.h>
 
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns__ {
     void* voidVariable;
     bool boolVariable;

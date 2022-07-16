@@ -2,6 +2,8 @@
 
 #include <DebugYourself.h>
 
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns_TestClasses {
 	class TestClass1 {
 	public:
@@ -116,23 +118,26 @@ namespace ns_TestClasses {
 	TestClass2 _TC2;
 	TestClass3 _TC3;
 
-	DebugYourself::ObjectVariableRegisterBinder OVRB_Register_(
+	inline static DebugYourself::ObjectVariableRegisterBinder OVRB_Register_(
 		_TC1.OVR,
 		_TC2.OVR,
 		_TC3.OVR);
 
-	DebugYourself::ClassFunctionRegisterBinder CFRB_Register_(
-		TestClass1::CFR,
-		TestClass2::CFR,
-		TestClass3::CFR);
+	static auto getCFRB() {
+		static DebugYourself::ClassFunctionRegisterBinder CFRB_Register_(
+			TestClass1::CFR,
+			TestClass2::CFR,
+			TestClass3::CFR);
+		return CFRB_Register_;
+	}
 
 }
 
 TEST(Dependencies, CreateDatabase) {
 
-	using DY = DebugYourself::Dependencies<decltype(ns_TestClasses::CFRB_Register_), decltype(ns_TestClasses::OVRB_Register_), void, void>;
+	using DY = DebugYourself::Dependencies<decltype(ns_TestClasses::getCFRB()), decltype(ns_TestClasses::OVRB_Register_), void, void>;
 
-	ns_TestClasses::CFRB_Register_.use(ns_TestClasses::CFRB_Register_);
+	ns_TestClasses::getCFRB().use(ns_TestClasses::getCFRB());
 	ns_TestClasses::OVRB_Register_.add(
 		ns_TestClasses::_TC1.OVR,
 		ns_TestClasses::_TC2.OVR,
