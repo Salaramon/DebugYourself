@@ -3,22 +3,24 @@
 
 #include <DebugYourself.h>
 
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns_Parameters_ {
 	void voidFunction(bool, char) {}
 	bool boolFunction(void*, char) { return true; }
 	char charFunction(void*, bool) { return ' '; }
 
-	DebugYourself::GlobalFunctionRegister<
+	DebugYourself::FunctionRegister<
 		&voidFunction,
 		&boolFunction,
 		&charFunction> GFR_No_Naming;
 
-	DebugYourself::GlobalFunctionRegister<
+	DebugYourself::FunctionRegister<
 		&voidFunction,
 		&boolFunction,
 		&charFunction> GFR_Partial_Naming("voidFunction");
 
-	DebugYourself::GlobalFunctionRegister<
+	DebugYourself::FunctionRegister<
 		&voidFunction,
 		&boolFunction,
 		&charFunction> GFR_Full_Naming(
@@ -32,17 +34,17 @@ namespace ns_tuple_ {
 	bool boolFunction(void*, char) { return true; }
 	char charFunction(void*, bool) { return ' '; }
 
-	DebugYourself::GlobalFunctionRegister<
+	DebugYourself::FunctionRegister<
 		&voidFunction,
 		&boolFunction,
 		&charFunction> GFR_No_Naming;
 
-	DebugYourself::GlobalFunctionRegister<
+	DebugYourself::FunctionRegister<
 		&voidFunction,
 		&boolFunction,
 		&charFunction> GFR_Partial_Naming("voidFunction");
 
-	DebugYourself::GlobalFunctionRegister<
+	DebugYourself::FunctionRegister<
 		&voidFunction,
 		&boolFunction,
 		&charFunction> GFR_Full_Naming(

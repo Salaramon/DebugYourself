@@ -2,6 +2,8 @@
 
 #include <DebugYourself.h>
 
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns__ {
 	class TestClass {
 	private:
@@ -14,7 +16,7 @@ namespace ns__ {
 			OVR()
 		{}
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -39,7 +41,7 @@ namespace ns_ObjectType_tuple_ {
 				&charVariable))
 		{}
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -64,7 +66,7 @@ namespace ns_ObjectType_char_tuple_ {
 				&charVariable))
 		{}
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -105,19 +107,19 @@ namespace ns_ObjectType_tuple_tuple_ {
 					"charVariable"))
 		{}
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
 			decltype(charVariable)> OVR_No_Naming;
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
 			decltype(charVariable)> OVR_Partial_Naming;
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -158,19 +160,19 @@ namespace ns_ObjectType_char_tuple_tuple_ {
 					"charVariable"))
 		{}
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
 			decltype(charVariable)> OVR_No_Naming;
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
 			decltype(charVariable)> OVR_Partial_Naming;
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -356,7 +358,7 @@ namespace ns_ObjectVariableRegister_l_ {
 					"charVariable"))
 		{}
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -388,13 +390,13 @@ namespace ns_assignment_ObjectVariableRegister_l {
 					"charVariable"))
 		{}
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
 			decltype(charVariable)> OVR;
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -424,7 +426,7 @@ namespace ns_ObjectVariableRegister_r_ {
 					"charVariable"))
 		{}
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -456,13 +458,13 @@ namespace ns_assignment_ObjectVariableRegister_r {
 					"charVariable"))
 		{}
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
 			decltype(charVariable)> OVR;
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -477,7 +479,7 @@ TEST(ObjectVariableRegister, _ObjectVariableRegister_l) {
 
 	ns_ObjectVariableRegister_l_::TestClass newClass;
 
-	DebugYourself::ObjectVariableRegister<
+	DebugYourself::ObjectRegister<
 		ns_ObjectVariableRegister_l_::TestClass,
 		void*,
 		bool,
@@ -532,7 +534,7 @@ TEST(ObjectVariableRegister, assignment_ObjectVariableRegister_l) {
 TEST(ObjectVariableRegister, _ObjectVariableRegister_r) {
 	ns_ObjectVariableRegister_r_::TestClass newClass;
 
-	DebugYourself::ObjectVariableRegister<
+	DebugYourself::ObjectRegister<
 		ns_ObjectVariableRegister_r_::TestClass,
 		void*,
 		bool,
@@ -609,7 +611,7 @@ namespace ns_function1_5 {
 					"charVariable"))
 		{}
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass,
 			decltype(voidVariable),
 			decltype(boolVariable),

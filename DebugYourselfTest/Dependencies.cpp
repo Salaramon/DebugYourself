@@ -2,6 +2,8 @@
 
 #include <DebugYourself.h>
 
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns_TestClasses {
 	class TestClass1 {
 	public:
@@ -20,7 +22,7 @@ namespace ns_TestClasses {
 		bool boolVariable;
 		char charVariable;
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass1,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -30,7 +32,7 @@ namespace ns_TestClasses {
 		bool boolFunction(void*, char) { return true; }
 		char charFunction(void*, bool) { return ' '; }
 
-		inline static auto CFR = DebugYourself::ClassFunctionRegister<
+		inline static auto CFR = DebugYourself::ClassRegister<
 			&voidFunction,
 			&boolFunction,
 			&charFunction>(
@@ -60,7 +62,7 @@ namespace ns_TestClasses {
 		bool boolFunction(void*, char) { return true; }
 		char charFunction(void*, bool) { return ' '; }
 
-		inline static auto CFR = DebugYourself::ClassFunctionRegister<
+		inline static auto CFR = DebugYourself::ClassRegister<
 			&voidFunction,
 			&boolFunction,
 			&charFunction>(
@@ -68,7 +70,7 @@ namespace ns_TestClasses {
 				"boolFunction2",
 				"charFunction2");
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass2,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -96,7 +98,7 @@ namespace ns_TestClasses {
 		bool boolFunction(void*, char) { return true; }
 		char charFunction(void*, bool) { return ' '; }
 
-		inline static auto CFR = DebugYourself::ClassFunctionRegister<
+		inline static auto CFR = DebugYourself::ClassRegister<
 			&voidFunction,
 			&boolFunction,
 			&charFunction>(
@@ -104,7 +106,7 @@ namespace ns_TestClasses {
 				"boolFunction3",
 				"charFunction3");
 
-		DebugYourself::ObjectVariableRegister<
+		DebugYourself::ObjectRegister<
 			TestClass3,
 			decltype(voidVariable),
 			decltype(boolVariable),
@@ -116,12 +118,12 @@ namespace ns_TestClasses {
 	TestClass2 _TC2;
 	TestClass3 _TC3;
 
-	DebugYourself::ObjectVariableRegisterBinder OVRB_Register_(
+	DebugYourself::ObjectBinder OB_Register_(
 		_TC1.OVR,
 		_TC2.OVR,
 		_TC3.OVR);
 
-	DebugYourself::ClassFunctionRegisterBinder CFRB_Register_(
+	DebugYourself::ClassBinder CB_Register_(
 		TestClass1::CFR,
 		TestClass2::CFR,
 		TestClass3::CFR);
@@ -129,11 +131,10 @@ namespace ns_TestClasses {
 }
 
 TEST(Dependencies, CreateDatabase) {
+	using DY = DebugYourself::Dependencies<decltype(ns_TestClasses::CB_Register_), decltype(ns_TestClasses::OB_Register_), DebugYourself::No_FB, DebugYourself::No_VB>;
 
-	using DY = DebugYourself::Dependencies<decltype(ns_TestClasses::CFRB_Register_), decltype(ns_TestClasses::OVRB_Register_), void, void>;
-
-	ns_TestClasses::CFRB_Register_.use(ns_TestClasses::CFRB_Register_);
-	ns_TestClasses::OVRB_Register_.add(
+	ns_TestClasses::CB_Register_.use(ns_TestClasses::CB_Register_);
+	ns_TestClasses::OB_Register_.add(
 		ns_TestClasses::_TC1.OVR,
 		ns_TestClasses::_TC2.OVR,
 		ns_TestClasses::_TC3.OVR

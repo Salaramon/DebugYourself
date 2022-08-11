@@ -2,12 +2,14 @@
 
 #include <DebugYourself.h>
 
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns__ {
     void* voidVariable;
     bool boolVariable;
     char charVariable;
 
-    DebugYourself::FundamentalVariableRegister<
+    DebugYourself::VariableRegister<
         decltype(voidVariable),
         decltype(boolVariable),
         decltype(charVariable)> FVR;
@@ -18,7 +20,7 @@ namespace ns_variables_ {
     bool boolVariable;
     char charVariable;
 
-    DebugYourself::FundamentalVariableRegister<
+    DebugYourself::VariableRegister<
         decltype(voidVariable),
         decltype(boolVariable),
         decltype(charVariable)> FVR(std::tuple(
@@ -32,7 +34,7 @@ namespace ns_variables_names_{
     bool boolVariable;
     char charVariable;
 
-    DebugYourself::FundamentalVariableRegister<
+    DebugYourself::VariableRegister<
         decltype(voidVariable),
         decltype(boolVariable),
         decltype(charVariable)> FVR_No_Naming(std::tuple(
@@ -41,7 +43,7 @@ namespace ns_variables_names_{
             &charVariable),
             std::tuple());
 
-    DebugYourself::FundamentalVariableRegister<
+    DebugYourself::VariableRegister<
         decltype(voidVariable),
         decltype(boolVariable),
         decltype(charVariable)> FVR_Partial_Naming(std::tuple(
@@ -50,7 +52,7 @@ namespace ns_variables_names_{
             &charVariable),
             std::tuple("voidVariable"));
 
-    DebugYourself::FundamentalVariableRegister<
+    DebugYourself::VariableRegister<
         decltype(voidVariable),
         decltype(boolVariable),
         decltype(charVariable)> FVR_Full_Naming(std::tuple(
@@ -133,7 +135,7 @@ namespace ns_function1_3 {
     bool boolVariable;
     char charVariable;
 
-    DebugYourself::FundamentalVariableRegister<
+    DebugYourself::VariableRegister<
         decltype(voidVariable),
         decltype(boolVariable),
         decltype(charVariable)> FVR(std::tuple(

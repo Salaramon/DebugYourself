@@ -2,6 +2,8 @@
 
 #include <DebugYourself.h>
 
+using DebugYourself = dy::DebugYourself<true>;
+
 namespace ns_Parameters_ {
 	class TestClass {
 	private:
@@ -10,17 +12,17 @@ namespace ns_Parameters_ {
 		bool boolFunction(void*, char) { return true; }
 		char charFunction(void*, bool) { return ' '; }
 
-		inline static auto CFR_No_Naming = DebugYourself::ClassFunctionRegister<
+		inline static auto CFR_No_Naming = DebugYourself::ClassRegister<
 			&voidFunction,
 			&boolFunction,
 			&charFunction>();
 
-		inline static auto CFR_Partial_Naming = DebugYourself::ClassFunctionRegister<
+		inline static auto CFR_Partial_Naming = DebugYourself::ClassRegister<
 			&voidFunction,
 			&boolFunction,
 			&charFunction>("voidFunction");
 
-		inline static auto CFR_Full_Naming = DebugYourself::ClassFunctionRegister<
+		inline static auto CFR_Full_Naming = DebugYourself::ClassRegister<
 			&voidFunction,
 			&boolFunction,
 			&charFunction>(
@@ -40,17 +42,17 @@ namespace ns_tuple_ {
 		bool boolFunction(void*, char) { return true; }
 		char charFunction(void*, bool) { return ' '; }
 
-		inline static auto CFR_No_Naming = DebugYourself::ClassFunctionRegister<
+		inline static auto CFR_No_Naming = DebugYourself::ClassRegister<
 			&voidFunction,
 			&boolFunction,
 			&charFunction>(std::tuple());
 
-		inline static auto CFR_Partial_Naming = DebugYourself::ClassFunctionRegister<
+		inline static auto CFR_Partial_Naming = DebugYourself::ClassRegister<
 			&voidFunction,
 			&boolFunction,
 			&charFunction>(std::tuple("voidFunction"));
 
-		inline static auto CFR_Full_Naming = DebugYourself::ClassFunctionRegister<
+		inline static auto CFR_Full_Naming = DebugYourself::ClassRegister<
 			&voidFunction,
 			&boolFunction,
 			&charFunction>(std::tuple(

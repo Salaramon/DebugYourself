@@ -90,6 +90,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -107,6 +108,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -149,7 +151,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>C:\Users\Salaramon\source\repos\DebugYourself\sqlite\include;C:\Users\Salaramon\source\repos\DebugYourself\gigabase\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Salaramon\source\repos\DebugYourself\sqlite\include;C:\Users\Salaramon\source\repos\DebugYourself\gigabase\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -169,7 +171,6 @@
   <ItemGroup>
     <ClInclude Include="DebugYourself.h" />
     <ClInclude Include="DebugYourselfDatabase.h" />
-    <ClInclude Include="DebugYourselfUtility.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Utility.h" />
