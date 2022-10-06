@@ -83,7 +83,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\Salaramon\source\repos\DebugYourself\pugixml\include;C:\Users\Salaramon\source\repos\DebugYourself\cppast\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Salaramon\source\repos\DebugYourself\json\include;C:\Users\Salaramon\source\repos\DebugYourself\pugixml\include;C:\Users\Salaramon\source\repos\DebugYourself\cppast\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\Salaramon\source\repos\DebugYourself\pugixml\lib\release;C:\Program Files\LLVM\lib;C:\Users\Salaramon\source\repos\DebugYourself\cppast\lib\release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -145,7 +145,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>cppast.lib;libclang.lib;tiny-process-library.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cppast.lib;libclang.lib;tiny-process-library.lib;pugixml.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

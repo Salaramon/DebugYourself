@@ -1,4 +1,5 @@
 #pragma once
+#pragma comment(lib, "sqlite3.lib")
 
 #include <iostream>
 #include <string>

@@ -9,9 +9,9 @@
 #include <string>
 
 
-		///////////////////////////////
-		////////General Utility////////
-		///////////////////////////////
+///////////////////////////////
+////////General Utility////////
+///////////////////////////////
 
 template<class Class>
 std::string classToString() {
@@ -25,11 +25,11 @@ std::string classToString() {
 
 
 
-		///////////////////////////////
-		////////Template Utility///////
-		///////////////////////////////
+///////////////////////////////
+////////Template Utility///////
+///////////////////////////////
 
-	//Create a tuple with type "n" number of "Type" types.
+//Create a tuple with type "n" number of "Type" types.
 
 template<size_t n, class Type, class... Types>
 struct _UniformTuple {
@@ -50,7 +50,7 @@ struct UniformTuple {
 
 
 
-	//Create a tuple with parameters passed into get() function and fill the remaining parameters of the tuple with non-type "defaultValue".
+//Create a tuple with parameters passed into get() function and fill the remaining parameters of the tuple with non-type "defaultValue".
 
 template<size_t n, class TupleType, class DefaultType, DefaultType defaultValue>
 struct _DefaultTuple {
@@ -119,7 +119,7 @@ struct DefaultTupleFromTuple {
 public:
 	template<class ArgTuple>
 	inline static ReturnTuple unpack(ArgTuple tuple) {
-		return _DefaultTupleFromTuple<std::tuple_size_v<ArgTuple> - 1, ReturnTuple, DefaultType, defaultValue>::unpack(tuple);
+		return _DefaultTupleFromTuple<std::tuple_size_v<ArgTuple> -1, ReturnTuple, DefaultType, defaultValue>::unpack(tuple);
 	}
 };
 
@@ -137,5 +137,33 @@ struct _GetClassFromFunctionPointer<TReturnType(TClass::*)(TParameters...)> {
 	using Parameters = std::tuple<TParameters...>;
 };
 
+template<class TClass, class TReturnType, class... TParameters>
+struct _GetClassFromFunctionPointer<TReturnType(TClass::*)(TParameters...) const> {
+	using Class = TClass;
+	using ReturnType = TReturnType;
+	using Parameters = std::tuple<TParameters...>;
+};
+
 template<auto function>
 using GetClassFromFunctionPointer = _GetClassFromFunctionPointer<decltype(function)>::Class;
+
+
+template<class Function>
+struct _GetClassWithConstFromFunctionPointer {};
+
+template<class TClass, class TReturnType, class... TParameters>
+struct _GetClassWithConstFromFunctionPointer<TReturnType(TClass::*)(TParameters...)> {
+	using Class = TClass;
+	using ReturnType = TReturnType;
+	using Parameters = std::tuple<TParameters...>;
+};
+
+template<class TClass, class TReturnType, class... TParameters>
+struct _GetClassWithConstFromFunctionPointer<TReturnType(TClass::*)(TParameters...) const> {
+	using Class = const TClass;
+	using ReturnType = TReturnType;
+	using Parameters = std::tuple<TParameters...>;
+};
+
+template<auto function>
+using GetClassWithConstFromFunctionPointer = _GetClassWithConstFromFunctionPointer<decltype(function)>::Class;

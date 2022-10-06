@@ -68,37 +68,18 @@ namespace ns__Registers_ {
 }
 
 TEST(ClassBinder, __) {
-	EXPECT_EQ(std::tuple_size_v<decltype(ns__Registers_::CB__.internalBinder)>, 3);
+	EXPECT_EQ(std::tuple_size_v<decltype(ns__Registers_::CB__.binder)>, 3);
 }
 
 TEST(ClassBinder, _Registers_) {
-	EXPECT_EQ(std::tuple_size_v<decltype(ns__Registers_::CB_Registers_.internalBinder)>, 3);
+	EXPECT_EQ(std::tuple_size_v<decltype(ns__Registers_::CB_Registers_.binder)>, 3);
 }
 
 TEST(ClassBinder, _RegisterCollection_) {
 	EXPECT_EQ(std::tuple_size_v<decltype(ns__Registers_::CB_RegisterCollection_)::RegisterCollection>, 7);
 }
 
-TEST(ClassBinder, use) {
-	ns__Registers_::CB__.use(ns__Registers_::CB__);
-	EXPECT_EQ(std::tuple_size_v<decltype(ns__Registers_::CB__.binder)>, 3);
-
-	EXPECT_EQ(std::get<1>(ns__Registers_::CB__.binder).associatedFunctions, std::get<1>(ns__Registers_::CB__.internalBinder).associatedFunctions);
-	EXPECT_EQ(std::get<2>(ns__Registers_::CB__.binder).associatedFunctions, std::get<2>(ns__Registers_::CB__.internalBinder).associatedFunctions);
-	EXPECT_EQ(std::get<0>(ns__Registers_::CB__.binder).associatedFunctions, std::get<0>(ns__Registers_::CB__.internalBinder).associatedFunctions);
-
-
-	ns__Registers_::CB_Registers_.use(ns__Registers_::CB_Registers_);
-	EXPECT_EQ(std::tuple_size_v<decltype(ns__Registers_::CB_Registers_.binder)>, 3);
-
-	EXPECT_EQ(std::get<0>(ns__Registers_::CB_Registers_.binder).associatedFunctions, std::get<0>(ns__Registers_::CB_Registers_.internalBinder).associatedFunctions);
-	EXPECT_EQ(std::get<1>(ns__Registers_::CB_Registers_.binder).associatedFunctions, std::get<1>(ns__Registers_::CB_Registers_.internalBinder).associatedFunctions);
-	EXPECT_EQ(std::get<2>(ns__Registers_::CB_Registers_.binder).associatedFunctions, std::get<2>(ns__Registers_::CB_Registers_.internalBinder).associatedFunctions);
-
-}
-
 TEST(ClassBinder, getFunctionName) {
-	ns__Registers_::CB__.use(ns__Registers_::CB__);
 
 	EXPECT_STREQ(ns__Registers_::CB__.getFunctionName<&ns__Registers_::TestClass1::voidFunction>(), nullptr);
 	EXPECT_STREQ(ns__Registers_::CB__.getFunctionName<&ns__Registers_::TestClass1::boolFunction>(), nullptr);
@@ -112,8 +93,6 @@ TEST(ClassBinder, getFunctionName) {
 	EXPECT_STREQ(ns__Registers_::CB__.getFunctionName<&ns__Registers_::TestClass3::boolFunction>(), nullptr);
 	EXPECT_STREQ(ns__Registers_::CB__.getFunctionName<&ns__Registers_::TestClass3::charFunction>(), nullptr);
 
-
-	ns__Registers_::CB_Registers_.use(ns__Registers_::CB_Registers_);
 
 	EXPECT_STREQ(ns__Registers_::CB_Registers_.getFunctionName<&ns__Registers_::TestClass1::voidFunction>(), "voidFunction1");
 	EXPECT_STREQ(ns__Registers_::CB_Registers_.getFunctionName<&ns__Registers_::TestClass1::boolFunction>(), "boolFunction1");

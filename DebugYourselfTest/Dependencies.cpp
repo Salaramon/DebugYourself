@@ -131,9 +131,8 @@ namespace ns_TestClasses {
 }
 
 TEST(Dependencies, CreateDatabase) {
-	using DY = DebugYourself::Dependencies<decltype(ns_TestClasses::CB_Register_), decltype(ns_TestClasses::OB_Register_), DebugYourself::No_FB, DebugYourself::No_VB>;
+	using DY = DebugYourself::Dependencies<decltype(ns_TestClasses::CB_Register_), decltype(ns_TestClasses::OB_Register_), DebugYourself::No_FB, DebugYourself::No_VB>::Class;
 
-	ns_TestClasses::CB_Register_.use(ns_TestClasses::CB_Register_);
 	ns_TestClasses::OB_Register_.add(
 		ns_TestClasses::_TC1.OVR,
 		ns_TestClasses::_TC2.OVR,

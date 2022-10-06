@@ -66,25 +66,14 @@ namespace ns_Registers_ {
 };
 
 TEST(FunctionBinder, _Registers_) {
-	EXPECT_EQ(std::tuple_size_v<decltype(ns_Registers_::FB.internalBinder)>, 3);
+	EXPECT_EQ(std::tuple_size_v<decltype(ns_Registers_::FB.binder)>, 3);
 }
 
 TEST(FunctionBinder, _RegisterCollection_) {
 	EXPECT_EQ(std::tuple_size_v<decltype(ns_Registers_::FB_RegisterCollection_)::RegisterCollection>, 4);
 }
 
-TEST(FunctionBinder, use) {
-	ns_Registers_::FB.use(ns_Registers_::FB);
-	EXPECT_EQ(std::tuple_size_v<decltype(ns_Registers_::FB.binder)>, 3);
-
-	EXPECT_EQ(std::get<0>(ns_Registers_::FB.binder).associatedFunctions, std::get<0>(ns_Registers_::FB.internalBinder).associatedFunctions);
-	EXPECT_EQ(std::get<1>(ns_Registers_::FB.binder).associatedFunctions, std::get<1>(ns_Registers_::FB.internalBinder).associatedFunctions);
-	EXPECT_EQ(std::get<2>(ns_Registers_::FB.binder).associatedFunctions, std::get<2>(ns_Registers_::FB.internalBinder).associatedFunctions);
-}
-
 TEST(FunctionBinder, getFunctionName) {
-
-	ns_Registers_::FB.use(ns_Registers_::FB);
 
 	EXPECT_STREQ(ns_Registers_::FB.getFunctionName<&ns_Registers_::voidFunction1>(), "voidFunction1");
 	EXPECT_STREQ(ns_Registers_::FB.getFunctionName<&ns_Registers_::boolFunction1>(), "boolFunction1");
