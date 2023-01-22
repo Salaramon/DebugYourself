@@ -203,10 +203,11 @@ namespace dy {
 	constexpr bool CONFIGURATION_STATE = false;
 #endif
 
-	template<bool enable>
-	using EnableGuard = std::enable_if_t<enable>;
 
+	struct Enabled {};
+	struct Disabled {};
 
+	using State = std::conditional_t<CONFIGURATION_STATE, Enabled, Disabled>;
 
 
 
@@ -289,13 +290,8 @@ namespace dy {
 
 
 
-
-
-
-
-
-
-	class ReleaseDebugYourself {
+	template<class... Extensions>
+	class ReleaseDebugYourself : public Extensions... {
 	public:
 
 		ReleaseDebugYourself() {}
@@ -304,8 +300,6 @@ namespace dy {
 		///////////////////////////
 		////////API Utility////////
 		///////////////////////////
-
-		inline static std::chrono::time_point<std::chrono::steady_clock> launchTimeStamp = std::chrono::steady_clock::now();
 
 
 
@@ -354,8 +348,6 @@ namespace dy {
 			template<R(C::* F)(Args...)>
 			inline static constexpr auto Get = _Get<F>::FP;
 		};
-
-
 
 
 
@@ -528,6 +520,8 @@ namespace dy {
 			ObjectRegister(const ObjectRegister& other) {};
 
 			ObjectRegister(ObjectRegister&& other) {}
+
+			std::nullptr_t operator=(const ObjectRegister<ObjectType, Types...>&) { return nullptr; }
 		};
 
 
@@ -967,6 +961,9 @@ namespace dy {
 		struct ObjectBinder {
 			ObjectBinder() {}
 			ObjectBinder(Registers&...) {}
+
+			template<class... Args>
+			void add(Args...) {}
 		};
 
 
@@ -1150,6 +1147,8 @@ namespace dy {
 			VariableBinder() {}
 			VariableBinder(Registers...) {}
 
+			template<class... Args>
+			void add(Args...) {}
 		};
 
 
@@ -1314,45 +1313,8 @@ namespace dy {
 			MainTable_TagsType& main_tagsTable;
 		};
 
-		static LoggingDatabase getLoggingDatabase() {
-
-			auto t = std::time(nullptr);
-			tm tm;
-			gmtime_s(&tm, &t);
-
-			std::ostringstream oss;
-			oss << std::put_time(&tm, "%Y%m%d%H%M%S");
-			//"%d-%m-%Y %H-%M-%S"
-			static DebugYourselfDatabase database("log/DebugYourselfDatabase-" + oss.str() + ".db");
-
-			static MainTableType mainTable(&database, "MainTable",
-				"ID",
-				"Class",
-				"ObjectName",
-				"Object_Address",
-				"Object_Time",
-				"Function_Name",
-				"Function_Address",
-				"Variable_Name",
-				"Variable_Address",
-				"Rank",
-				"Time",
-				"Message");
-
-			static TagsTableType tagsTable(&database, "TagsTable",
-				"ID",
-				"Tag");
-
-			static MainTable_TagsType mainTable_Tags(&database, "MainTable_Tags",
-				"MainTable_ID", "TagsTable_ID", SQLTConst::ForeignKey("MainTable_ID", "MainTable", "ID"), SQLTConst::ForeignKey("TagsTable_ID", "TagsTable", "ID"));
-
-			return LoggingDatabase(mainTable, tagsTable, mainTable_Tags);
-		}
 
 		static void end() {
-			getLoggingDatabase().mainTable.push();
-			getLoggingDatabase().tagsTable.push();
-			getLoggingDatabase().main_tagsTable.push();
 
 		}
 
@@ -1394,8 +1356,6 @@ namespace dy {
 		inline static SQLTypes::INTEGER tagsTableIndex = 1;
 
 		//Implement compile-time debug() tag check.
-
-		inline static std::unordered_map<std::string, SQLTypes::INTEGER> existingTags;
 
 
 
@@ -1711,6 +1671,7 @@ namespace dy {
 
 		static void disablePublish() {}
 
+		static void publishState(std::function<void(bool)> lambda){}
 
 
 		template<class CB, class OB, class FB, class VB, class Publish = AlwaysTrue, class PreAction = DirectLogger<>>
@@ -1853,6 +1814,10 @@ namespace dy {
 
 			struct Class {
 			public:
+				template<auto functionPointer, class T, class... Args>
+				static void debug(Args...) {}
+				template<class T, class... Args>
+				static void debug(Args...) {}
 				template<auto functionPointer, class... Args>
 				static void debug(Args...) {}
 				template<class... Args>
@@ -1860,6 +1825,10 @@ namespace dy {
 			};
 
 			struct Static {
+				template<auto functionPointer, class T, class... Args>
+				static void debug(Args...) {}
+				template<class T, class... Args>
+				static void debug(Args...) {}
 				template<auto functionPointer, class... Args>
 				static void debug(Args...) {}
 				template<class... Args>
@@ -1867,6 +1836,10 @@ namespace dy {
 			};
 
 			struct Global {
+				template<auto functionPointer, class T, class... Args>
+				static void debug(Args...) {}
+				template<class T, class... Args>
+				static void debug(Args...) {}
 				template<auto functionPointer, class... Args>
 				static void debug(Args...) {}
 				template<class... Args>
@@ -1875,6 +1848,12 @@ namespace dy {
 
 			struct Constructor {
 			public:
+				template<auto functionPointer, class T, class... Args>
+				static void debug(Args...) {}
+				template<class T, class... Args>
+				static void debug(Args...) {}
+				template<auto functionPointer, class... Args>
+				static void debug(Args...) {}
 				template<class... Args>
 				static void debug(Args...) {}
 			};
@@ -1883,12 +1862,36 @@ namespace dy {
 			public:
 
 				struct Static {
+					template<auto functionPointer, class T, class... Args>
+					static void debug(Args...) {}
+					template<class T, class... Args>
+					static void debug(Args...) {}
 					template<auto functionPointer, class... Args>
+					static void debug(Args...) {}
+					template<class... Args>
 					static void debug(Args...) {}
 				};
 
 				struct Global {
+					template<auto functionPointer, class T, class... Args>
+					static void debug(Args...) {}
+					template<class T, class... Args>
+					static void debug(Args...) {}
 					template<auto functionPointer, class... Args>
+					static void debug(Args...) {}
+					template<class... Args>
+					static void debug(Args...) {}
+				};
+
+				struct Constructor {
+				public:
+					template<auto functionPointer, class T, class... Args>
+					static void debug(Args...) {}
+					template<class T, class... Args>
+					static void debug(Args...) {}
+					template<auto functionPointer, class... Args>
+					static void debug(Args...) {}
+					template<class... Args>
 					static void debug(Args...) {}
 				};
 			};
@@ -1898,12 +1901,22 @@ namespace dy {
 
 				struct Class {
 				public:
+					template<auto functionPointer, class T, class... Args>
+					static void debug(Args...) {}
+					template<class T, class... Args>
+					static void debug(Args...) {}
 					template<auto functionPointer, class... Args>
+					static void debug(Args...) {}
+					template<class... Args>
 					static void debug(Args...) {}
 
 				};
 
 				struct Global {
+					template<auto functionPointer, class T, class... Args>
+					static void debug(Args...) {}
+					template<class T, class... Args>
+					static void debug(Args...) {}
 					template<auto functionPointer, class... Args>
 					static void debug(Args...) {}
 					template<class... Args>
@@ -1913,13 +1926,25 @@ namespace dy {
 
 				struct Constructor {
 				public:
+					template<auto functionPointer, class T, class... Args>
+					static void debug(Args...) {}
+					template<class T, class... Args>
+					static void debug(Args...) {}
+					template<auto functionPointer, class... Args>
+					static void debug(Args...) {}
 					template<class... Args>
 					static void debug(Args...) {}
 				};
 
 				struct Special {
 				public:
+					template<auto functionPointer, class T, class... Args>
+					static void debug(Args...) {}
+					template<class T, class... Args>
+					static void debug(Args...) {}
 					template<auto functionPointer, class... Args>
+					static void debug(Args...) {}
+					template<class... Args>
 					static void debug(Args...) {}
 				};
 			};
@@ -2038,8 +2063,8 @@ namespace dy {
 
 
 
-
-	class DebugDebugYourself {
+	template<class... Extensions>
+	class DebugDebugYourself : public Extensions... {
 	public:
 
 		DebugDebugYourself() {}
@@ -2377,38 +2402,14 @@ namespace dy {
 				cleanBinder(reinterpret_cast<void*>(associatedObject));
 			}
 
-
-			ObjectRegister& operator=(const ObjectRegister& other) {
-				associatedObject = other.associatedObject;
-				associatedVariables = other.associatedVariables;
-				associatedVariableNames = other.associatedVariableNames;
-				objectName = other.objectName;
-
-				timeStamp = other.timeStamp;
-				instanceID = ++instanceCount;
-
-				return *this;
+			ObjectRegister<ObjectType, Types...> operator=(const ObjectRegister<ObjectType, Types...>& other) { 
+				return ObjectRegister<ObjectType, Types...>(other);
 			}
 
-			ObjectRegister& operator=(ObjectRegister&& other) {
-				associatedObject = other.associatedObject;
-				associatedVariables = other.associatedVariables;
-				associatedVariableNames = other.associatedVariableNames;
-				objectName = other.objectName;
-
-				timeStamp = other.timeStamp;
-				instanceID = other.instanceID;
-
-				other.associatedObject = nullptr;
-				other.associatedVariables = std::tuple<Types*...>();
-				other.associatedVariableNames = DefaultTupleFromTuple<UniformTuple<sizeof...(Types), const char*>::tuple, const char*, nullptr>::unpack(std::tuple<>());
-				other.objectName = nullptr;
-
-				other.timeStamp = std::chrono::duration_values<long double>::zero();
-				other.instanceID = 0;
-
-				return *this;
+			ObjectRegister<ObjectType, Types...> operator=(ObjectRegister<ObjectType, Types...>&& other) {
+				return ObjectRegister<ObjectType, Types...>(other);
 			}
+
 
 			template<size_t n>
 			const auto getVariablePointer() {
@@ -4509,7 +4510,9 @@ namespace dy {
 			publishToggle = false;
 		}
 
-
+		static void publishState(std::function<void(bool)> lambda) {
+			lambda(publishToggle);
+		}
 
 		template<class CB, class OB, class FB, class VB, class Publish = AlwaysTrue, class PreAction = DirectLogger<>>
 		struct Dependencies {
@@ -5454,10 +5457,6 @@ namespace dy {
 				template<class Class, class Variable>
 				static void debug(Class* object, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
 
-					const char* variable_name = OB::getObjectName(variable);
-					SQLTypes::INTEGER object = OB::getObject(variable);
-					variable_name = variable_name != nullptr ? variable_name : VB::getVariableName();
-
 					publish(
 						GetNames<nullptr, Class>::className().c_str(),
 						OB::getObjectName(object),
@@ -6008,6 +6007,229 @@ namespace dy {
 						}
 					}
 
+				};
+
+				struct Constructor {
+				public:
+					//
+					template<class Class>
+					static void debug(SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+
+						publish(
+							GetNames<nullptr, Class>::className().c_str(),
+							nullptr,
+							0,
+							-1,
+							nullptr,
+							0,
+							nullptr,
+							0,
+							rank,
+							std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugDebugYourself::launchTimeStamp)).count(),
+							message.c_str(),
+							tags
+						);
+					}
+					template<class Class>
+					static void debug(SQLTypes::INTEGER rank, std::string message) {
+
+						publish(
+							GetNames<nullptr, Class>::className().c_str(),
+							nullptr,
+							0,
+							-1,
+							nullptr,
+							0,
+							nullptr,
+							0,
+							rank,
+							std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugDebugYourself::launchTimeStamp)).count(),
+							message.c_str(),
+							{}
+						);
+					}
+					template<class Class>
+					static void debug(std::vector<SQLTypes::TEXT> tags, std::string message) {
+
+						publish(
+							GetNames<nullptr, Class>::className().c_str(),
+							nullptr,
+							0,
+							-1,
+							nullptr,
+							0,
+							nullptr,
+							0,
+							0,
+							std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugDebugYourself::launchTimeStamp)).count(),
+							message.c_str(),
+							tags
+						);
+					}
+					template<class Class>
+					static void debug(std::string message) {
+
+						publish(
+							GetNames<nullptr, Class>::className().c_str(),
+							nullptr,
+							0,
+							-1,
+							nullptr,
+							0,
+							nullptr,
+							0,
+							0,
+							std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugDebugYourself::launchTimeStamp)).count(),
+							message.c_str(),
+							{}
+						);
+					}
+
+					//V
+					template<class Class, class Variable>
+					static void debug(Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+
+						const char* variable_name = OB::getObjectName(variable);
+						SQLTypes::INTEGER object = OB::getObject(variable);
+						variable_name = variable_name != nullptr ? variable_name : VB::getVariableName();
+
+						publish(
+							GetNames<nullptr, Class>::className().c_str(),
+							OB::getObjectName(reinterpret_cast<Class*>(object)),
+							reinterpret_cast<SQLTypes::INTEGER>(object),
+							OB::getInstanceTime(reinterpret_cast<Class*>(object)),
+							nullptr,
+							0,
+							nullptr,
+							reinterpret_cast<SQLTypes::INTEGER>(variable),
+							rank,
+							std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugDebugYourself::launchTimeStamp)).count(),
+							message.c_str(),
+							tags
+						);
+
+					}
+					template<class Class, class Variable>
+					static void debug(Variable* variable, SQLTypes::INTEGER rank, std::string message) {
+
+						const char* variable_name = OB::getObjectName(variable);
+						SQLTypes::INTEGER object = OB::getObject(variable);
+						variable_name = variable_name != nullptr ? variable_name : VB::getVariableName();
+
+						publish(
+							GetNames<nullptr, Class>::className().c_str(),
+							OB::getObjectName(reinterpret_cast<Class*>(object)),
+							reinterpret_cast<SQLTypes::INTEGER>(object),
+							OB::getInstanceTime(reinterpret_cast<Class*>(object)),
+							nullptr,
+							0,
+							nullptr,
+							reinterpret_cast<SQLTypes::INTEGER>(variable),
+							rank,
+							std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugDebugYourself::launchTimeStamp)).count(),
+							message.c_str(),
+							std::vector<SQLTypes::TEXT>()
+						);
+
+					}
+					template<class Class, class Variable>
+					static void debug(Variable* variable, std::vector<SQLTypes::TEXT> tags, std::string message) {
+
+						const char* variable_name = OB::getObjectName(variable);
+						SQLTypes::INTEGER object = OB::getObject(variable);
+						variable_name = variable_name != nullptr ? variable_name : VB::getVariableName();
+
+						publish(
+							GetNames<nullptr, Class>::className().c_str(),
+							OB::getObjectName(reinterpret_cast<Class*>(object)),
+							reinterpret_cast<SQLTypes::INTEGER>(object),
+							OB::getInstanceTime(reinterpret_cast<Class*>(object)),
+							nullptr,
+							0,
+							nullptr,
+							reinterpret_cast<SQLTypes::INTEGER>(variable),
+							0,
+							std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugDebugYourself::launchTimeStamp)).count(),
+							message.c_str(),
+							tags
+						);
+
+					}
+					template<class Class, class Variable>
+					static void debug(Variable* variable, std::string message) {
+
+						const char* variable_name = OB::getObjectName(variable);
+						SQLTypes::INTEGER object = OB::getObject(variable);
+						variable_name = variable_name != nullptr ? variable_name : VB::getVariableName();
+
+						publish(
+							GetNames<nullptr, Class>::className().c_str(),
+							OB::getObjectName(reinterpret_cast<Class*>(object)),
+							reinterpret_cast<SQLTypes::INTEGER>(object),
+							OB::getInstanceTime(reinterpret_cast<Class*>(object)),
+							nullptr,
+							0,
+							nullptr,
+							reinterpret_cast<SQLTypes::INTEGER>(variable),
+							0,
+							std::chrono::duration<long double>((std::chrono::steady_clock::now() - DebugDebugYourself::launchTimeStamp)).count(),
+							message.c_str(),
+							std::vector<SQLTypes::TEXT>()
+						);
+
+					}
+
+					//C V
+					template<class Class, class Variable>
+					static void debug(std::function<bool()> condition, Class* object, Variable* variable, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+						if (condition()) {
+							debug<Class>(object, variable, rank, tags, message);
+						}
+					}
+					template<class Class, class Variable>
+					static void debug(std::function<bool()> condition, Class* object, Variable* variable, SQLTypes::INTEGER rank, std::string message) {
+						if (condition()) {
+							debug<Class>(object, variable, rank, message);
+						}
+					}
+					template<class Class, class Variable>
+					static void debug(std::function<bool()> condition, Class* object, Variable* variable, std::vector<SQLTypes::TEXT> tags, std::string message) {
+						if (condition()) {
+							debug<Class>(object, variable, tags, message);
+						}
+					}
+					template<class Class, class Variable>
+					static void debug(std::function<bool()> condition, Class* object, Variable* variable, std::string message) {
+						if (condition()) {
+							debug<Class>(object, variable, message);
+						}
+					}
+
+					//C
+					template<class Class>
+					static void debug(std::function<bool()> condition, Class* object, SQLTypes::INTEGER rank, std::vector<SQLTypes::TEXT> tags, std::string message) {
+						if (condition()) {
+							debug<Class>(object, rank, tags, message);
+						}
+					}
+					template<class Class>
+					static void debug(std::function<bool()> condition, Class* object, SQLTypes::INTEGER rank, std::string message) {
+						if (condition()) {
+							debug<Class>(object, rank, message);
+						}
+					}
+					template<class Class>
+					static void debug(std::function<bool()> condition, Class* object, std::vector<SQLTypes::TEXT> tags, std::string message) {
+						if (condition()) {
+							debug<Class>(object, tags, message);
+						}
+					}
+					template<class Class>
+					static void debug(std::function<bool()> condition, Class* object, std::string message) {
+						if (condition()) {
+							debug<Class>(object, message);
+						}
+					}
 				};
 			};
 
@@ -7257,7 +7479,7 @@ namespace dy {
 
 
 
-	template<bool enable>
-	using DebugYourself = std::conditional_t<enable, DebugDebugYourself, ReleaseDebugYourself>;
+	template<bool enable, class... Extensions>
+	using DebugYourself = std::conditional_t<enable, DebugDebugYourself<Extensions...>, ReleaseDebugYourself<Extensions...>>;
 
 };
